@@ -165,7 +165,7 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="🎯 Taming",
-        value="`/taming-guide` — Tranq ammo tiers & Fab Sniper damage multiplier explained",
+        value="`/taming-guide` — gives you knowledge of everything you need to know on how to tame in ARK Primal Chaos!",
         inline=False,
     )
     embed.add_field(
