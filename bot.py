@@ -382,9 +382,31 @@ async def mods_command(interaction: discord.Interaction):
         name="⚙️ Quality of Life",
         value=(
             "**TG Stacking Mod 1000-50** — Stack size ×1000, weight reduced by 50%\n"
-            "**A Simple Performance Mod (60 FPS)** — Smoother gameplay & performance boost\n"
-            "**Crash Protector** — Protects your character when you crash\n"
-            "**Tribute Table** — Redeem tribute items"
+            "**A Simple Performance Mod (60 FPS)** — Automatically runs performance commands on join "
+            "(see below for full list)\n"
+            "**Crash Protector** — Protects your character from wild dinos and drowning when you crash\n"
+            "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🖥️ Performance Mod — Applied Commands (PC)",
+        value=(
+            "`r.VolumetricCloud 0` — Disables clouds\n"
+            "`r.Nanite.MaxPixelsPerEdge 4` — Reduces triangle count\n"
+            "`foliage.MaxTrianglesToRender 500000` — Limits foliage rendering"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🎮 Performance Mod — Additional Commands (Console only)",
+        value=(
+            "`sg.GlobalIlluminationQuality 2` · `sg.ResolutionQuality 80`\n"
+            "`sg.AntiAliasingQuality 1` · `sg.ShadowQuality 2` · `sg.ShadingQuality 1`\n"
+            "`sg.PostProcessQuality 1` · `sg.FoliageQuality 1` · `sg.EffectsQuality 1`\n"
+            "`sg.ReflectionQuality 1` · `sg.TextureQuality 2` · `r.Vsync 1`\n"
+            "`r.ScreenPercentage 50` · `r.DynamicRes.MinScreenPercentage 50`\n"
+            "`r.Lumen.ScreenProbeGather.RadianceCache.ProbeResolution 16`"
         ),
         inline=False,
     )
@@ -457,8 +479,9 @@ async def armor_command(interaction: discord.Interaction):
         ),
         inline=False,
     )
+    embed.add_field(name="​", value="​", inline=False)
     embed.add_field(
-        name="📊 Armor Values",
+        name="📊 Base Stats — Armor Values (per piece)",
         value=(
             "• Alpha Flak → **500** armor\n"
             "• Volcanic Flak → **1000** armor\n"
@@ -470,9 +493,10 @@ async def armor_command(interaction: discord.Interaction):
     embed.add_field(
         name="📝 Notes",
         value=(
-            "• All Flak armor drops as **Blueprint only** — no ready-made items\n"
             "• BPs can be found in supply drops\n"
-            "• Use the **Upgrade Station** to push BPs to higher quality"
+            "• The **Upgrade Station** can upgrade finished armor pieces to higher quality\n"
+            "• ⚠️ The Upgrade Station works on **ARK base items only** — "
+            "Primal Chaos armor (e.g. Reaper saddle) cannot be upgraded"
         ),
         inline=True,
     )
@@ -481,7 +505,7 @@ async def armor_command(interaction: discord.Interaction):
 
 
 # ── /wipe ──────────────────────────────────────────────────────────────────────
-@tree.command(name="wipe", description="[Admin only] Announce a wild dino wipe")
+@tree.command(name="wipe", description="[Admin only] Announce an upcoming wild dino wipe in #announcements")
 async def wipe_command(interaction: discord.Interaction):
     role = discord.utils.get(interaction.guild.roles, name=WIPE_ROLE)
     if role not in interaction.user.roles:
@@ -491,18 +515,34 @@ async def wipe_command(interaction: discord.Interaction):
         )
         return
 
+    announcements_ch = discord.utils.get(interaction.guild.channels, name="📣｜announcements")
+    if announcements_ch is None:
+        await interaction.response.send_message(
+            "❌ Could not find the **📣｜announcements** channel.",
+            ephemeral=True,
+        )
+        return
+
     embed = discord.Embed(
-        title="⚠️ Wild Dino Wipe",
+        title="⚠️ Wild Dino Wipe — 15 Minute Warning",
         description=(
-            "A wild dino wipe has been initiated.\n\n"
-            "All wild dinosaurs on the map have been destroyed and will respawn shortly.\n"
-            "This may cause a brief lag spike — please be patient."
+            "**A wild dino wipe will take place in 15 minutes.**\n\n"
+            "All wild dinosaurs on the map will be removed and will begin respawning shortly after. "
+            "This is a routine reset to restore creature spawns that are no longer appearing in the world.\n\n"
+            "Please make sure your tames are secured before the wipe takes place.\n"
+            "There may be a brief lag spike when the wipe is executed — this is normal."
         ),
         color=discord.Color.red(),
     )
     embed.set_footer(text=f"Announced by {interaction.user.display_name} • Primal Hell")
-    await interaction.channel.send(embed=embed)
-    await interaction.response.send_message("✅ Wipe announcement posted.", ephemeral=True)
+
+    msg = await announcements_ch.send(content="@everyone", embed=embed)
+    await msg.pin()
+
+    await interaction.response.send_message(
+        f"✅ Wipe warning posted and pinned in {announcements_ch.mention}.",
+        ephemeral=True,
+    )
 
 
 
