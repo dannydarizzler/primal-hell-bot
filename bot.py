@@ -8,6 +8,7 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 SUGGESTIONS_CHANNEL = "❓｜suggestions"
+WIPE_ROLE           = "Admin"          # only members with this role can use /wipe
 COMMANDS_CHANNEL    = "🔎｜commands"
 
 # ── Loot Drop Data ─────────────────────────────────────────────────────────────
@@ -165,12 +166,27 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="🎯 Taming",
-        value="`/taming-guide` — gives you knowledge of everything you need to know on how to tame in ARK Primal Chaos!",
+        value="`/taming-guide` — Tranq ammo tiers & Fab Sniper damage multiplier explained",
+        inline=False,
+    )
+    embed.add_field(
+        name="🛡️ Armor",
+        value="`/armor` — All armor tiers from Hide Toxic to Legend Riot, including perks",
+        inline=False,
+    )
+    embed.add_field(
+        name="📊 Server Info",
+        value="`/mods` — List of all active mods with descriptions",
         inline=False,
     )
     embed.add_field(
         name="💡 Suggestions",
         value="`/suggestion <text>` — Submit a suggestion to the admins",
+        inline=False,
+    )
+    embed.add_field(
+        name="🔴 Admin Only",
+        value="`/wipe` — Post a wild dino wipe announcement",
         inline=False,
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
@@ -336,6 +352,158 @@ async def suggestion_command(interaction: discord.Interaction, text: str):
         f"✅ Your suggestion has been submitted to {suggestions_ch.mention}!",
         ephemeral=True,
     )
+
+
+# ── /mods ──────────────────────────────────────────────────────────────────────
+@tree.command(name="mods", description="Shows all active mods on the server")
+async def mods_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🔧 Active Mods — Primal Hell",
+        description="These mods are currently running on the server:",
+    )
+    embed.add_field(
+        name="⚔️ Gameplay Overhaul",
+        value=(
+            "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses\n"
+            "**Upgrade Station** — Upgrade any item to higher quality tiers"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🦕 Dino Tools",
+        value=(
+            "**Awesome Spyglass** — Extended spyglass with live stat display for dinos\n"
+            "**Dino Depot** — Dino management & storage\n"
+            "**Der Dino Finder** — Locate any dino on the map"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="⚙️ Quality of Life",
+        value=(
+            "**TG Stacking Mod 1000-50** — Stack size ×1000, weight reduced by 50%\n"
+            "**A Simple Performance Mod (60 FPS)** — Smoother gameplay & performance boost\n"
+            "**Crash Protector** — Protects your character when you crash\n"
+            "**Tribute Table** — Redeem tribute items"
+        ),
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed)
+
+
+
+
+# ── /armor ─────────────────────────────────────────────────────────────────────
+@tree.command(name="armor", description="Armor tier overview with perks")
+async def armor_command(interaction: discord.Interaction):
+    if not await check_channel(interaction):
+        return
+
+    embed = discord.Embed(
+        title="🛡️ Armor Tiers — Primal Chaos",
+        description=(
+            "Armor progresses through 5 tiers. Higher tiers offer better protection "
+            "and unique passive perks on certain pieces.\n\u200b"
+        ),
+    )
+    embed.add_field(
+        name="1️⃣ Hide Toxic — Starter",
+        value=(
+            "Basic protection for early game survival.\n"
+            "Available from the ⚪ **White drop**."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="2️⃣ Alpha Flak — Alpha Tier",
+        value=(
+            "Solid mid-game armor, upgrade from Toxic Hide.\n"
+            "Available from the 🔵 **Blue drop** (85% item / 15% BP)."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="3️⃣ Volcanic Flak — Volcanic Tier",
+        value=(
+            "Strong late-game armor with improved stats.\n"
+            "Available from the 🟡 **Yellow drop** (85% item / 15% BP)."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="4️⃣ Mythic Flak — Mythic Tier ⭐ (2500 armor)",
+        value=(
+            "High-end armor with piece-specific passive perks.\n"
+            "Available from the 🔴 **Red drop** (85% item / 15% BP).\n\n"
+            "🪖 Helmet → **×4 Food & Water**\n"
+            "👕 Chestpiece → **×4 Weight**\n"
+            "🧤 Gauntlets → **×4 Crafting Speed**\n"
+            "👖 Leggings → **×4 Stamina**\n"
+            "👢 Boots → **×4 Fall Damage Reduction**"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="5️⃣ Legend Riot — Legend Tier ⭐⭐ (3000 armor)",
+        value=(
+            "Top-tier armor with the strongest passive perks.\n"
+            "Available from the 🔴 **Red drop** (85% item / 15% BP).\n\n"
+            "🪖 Helmet → **×4 Health**\n"
+            "👕 Chestpiece → **×4 Torpor Resistance**\n"
+            "🧤 Gauntlets → **×4 Melee Damage**\n"
+            "👖 Leggings → **×4 Stamina**\n"
+            "👢 Boots → **+25% Movement Speed**"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="📊 Armor Values",
+        value=(
+            "• Alpha Flak → **500** armor\n"
+            "• Volcanic Flak → **1000** armor\n"
+            "• Mythic Flak → **2500** armor\n"
+            "• Legend Riot → **3000** armor"
+        ),
+        inline=True,
+    )
+    embed.add_field(
+        name="📝 Notes",
+        value=(
+            "• All Flak armor drops as **Blueprint only** — no ready-made items\n"
+            "• BPs can be found in supply drops\n"
+            "• Use the **Upgrade Station** to push BPs to higher quality"
+        ),
+        inline=True,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed)
+
+
+# ── /wipe ──────────────────────────────────────────────────────────────────────
+@tree.command(name="wipe", description="[Admin only] Announce a wild dino wipe")
+async def wipe_command(interaction: discord.Interaction):
+    role = discord.utils.get(interaction.guild.roles, name=WIPE_ROLE)
+    if role not in interaction.user.roles:
+        await interaction.response.send_message(
+            f"❌ You need the **{WIPE_ROLE}** role to use this command.",
+            ephemeral=True,
+        )
+        return
+
+    embed = discord.Embed(
+        title="⚠️ Wild Dino Wipe",
+        description=(
+            "A wild dino wipe has been initiated.\n\n"
+            "All wild dinosaurs on the map have been destroyed and will respawn shortly.\n"
+            "This may cause a brief lag spike — please be patient."
+        ),
+        color=discord.Color.red(),
+    )
+    embed.set_footer(text=f"Announced by {interaction.user.display_name} • Primal Hell")
+    await interaction.channel.send(embed=embed)
+    await interaction.response.send_message("✅ Wipe announcement posted.", ephemeral=True)
+
 
 
 # ── Start ──────────────────────────────────────────────────────────────────────
