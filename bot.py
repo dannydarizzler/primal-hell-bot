@@ -7,6 +7,9 @@ intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
+SUGGESTIONS_CHANNEL = "❓｜suggestions"
+COMMANDS_CHANNEL    = "🔎｜commands"
+
 # ── Loot Drop Data ─────────────────────────────────────────────────────────────
 DROPS = {
     "white": {
@@ -134,8 +137,6 @@ DROPS = {
 }
 
 # ── Channel Lock ───────────────────────────────────────────────────────────────
-COMMANDS_CHANNEL = "🔎｜commands"
-
 async def check_channel(interaction: discord.Interaction) -> bool:
     if interaction.channel.name != COMMANDS_CHANNEL:
         correct = discord.utils.get(interaction.guild.channels, name=COMMANDS_CHANNEL)
@@ -147,16 +148,45 @@ async def check_channel(interaction: discord.Interaction) -> bool:
         return False
     return True
 
+# ── /commands ──────────────────────────────────────────────────────────────────
+@tree.command(name="commands", description="Shows all available bot commands")
+async def commands_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="📋 Available Commands",
+        description="Here's everything the bot can do:",
+    )
+    embed.add_field(
+        name="🎁 Drops",
+        value=(
+            "`/drop <color>` — Full contents of a specific supply crate\n"
+            "`/drops` — Quick overview of all drop colors"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🎯 Taming",
+        value="`/taming-guide` — Tranq ammo tiers & Fab Sniper damage multiplier explained",
+        inline=False,
+    )
+    embed.add_field(
+        name="💡 Suggestions",
+        value="`/suggestion <text>` — Submit a suggestion to the admins",
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed)
+
+
 # ── /drop Command ──────────────────────────────────────────────────────────────
 @tree.command(name="drop", description="Shows the contents of a loot drop")
 @app_commands.describe(color="Which drop color?")
 @app_commands.choices(color=[
-    app_commands.Choice(name="⚪ White — Starter Kit",       value="white"),
-    app_commands.Choice(name="🟢 Green — Resources",         value="green"),
-    app_commands.Choice(name="🔵 Blue — Alpha Tier",         value="blue"),
-    app_commands.Choice(name="🟣 Purple — Structures",       value="purple"),
-    app_commands.Choice(name="🟡 Yellow — Volcanic Tier",    value="yellow"),
-    app_commands.Choice(name="🔴 Red — Primal/Mythic Tier",    value="red"),
+    app_commands.Choice(name="⚪ White — Starter Kit",      value="white"),
+    app_commands.Choice(name="🟢 Green — Resources",        value="green"),
+    app_commands.Choice(name="🔵 Blue — Alpha Tier",        value="blue"),
+    app_commands.Choice(name="🟣 Purple — Structures",      value="purple"),
+    app_commands.Choice(name="🟡 Yellow — Volcanic Tier",   value="yellow"),
+    app_commands.Choice(name="🔴 Red — Primal/Mythic Tier", value="red"),
 ])
 async def drop_command(interaction: discord.Interaction, color: str):
     if not await check_channel(interaction):
@@ -167,7 +197,7 @@ async def drop_command(interaction: discord.Interaction, color: str):
 
     embed = discord.Embed(title=f"Drop — {data['label']}")
     embed.add_field(name="Normal", value=data["normal"] + q, inline=False)
-    embed.add_field(name="\u200b", value="\u200b", inline=False)  # spacer
+    embed.add_field(name="\u200b", value="\u200b", inline=False)
     embed.add_field(name="Double (mit Ring)", value=data["double"] + q, inline=False)
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed)
@@ -194,6 +224,118 @@ async def drops_command(interaction: discord.Interaction):
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed)
+
+
+# ── /taming-guide ──────────────────────────────────────────────────────────────
+@tree.command(name="taming-guide", description="Tranq ammo tiers & Fab Sniper multiplier explained")
+async def taming_guide_command(interaction: discord.Interaction):
+    if not await check_channel(interaction):
+        return
+
+    embed = discord.Embed(
+        title="🎯 Taming Guide — Primal Chaos",
+        description=(
+            "Primal Chaos adds tiered tranq ammo — the higher the tier, the more torpor per hit. "
+            "Combined with a higher % Fab Sniper blueprint, the effect multiplies significantly.\n\u200b"
+        ),
+    )
+
+    embed.add_field(
+        name="🔫 Fab Sniper — ADV Sniper Bullets @ 100% weapon",
+        value=(
+            "• Potent → **2.1k** torpor\n"
+            "• Alpha → **4.6k** torpor\n"
+            "• Elemental → **8.6k** torpor\n"
+            "• Mythic → **13k** torpor\n"
+            "• Primal → **20.8k** torpor"
+        ),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🎯 Longneck — Tranq Darts @ 100% weapon",
+        value=(
+            "• Potent → **1.9k** torpor\n"
+            "• Alpha → **3.8k** torpor\n"
+            "• Elemental → **7.4k** torpor\n"
+            "• Mythic → **11.3k** torpor"
+        ),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🪃 Crossbow — Tranq Arrows @ 100% weapon",
+        value=(
+            "• Potent → **640** torpor\n"
+            "• Alpha → **1.2k** torpor"
+        ),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="📈 Weapon % Multiplier (Fab Sniper Example)",
+        value=(
+            "The weapon % on a blueprint scales torpor directly.\n\n"
+            "**Formula:** `Base Torpor × (Weapon % ÷ 100)`\n\n"
+            "Example with **Mythic ADV Bullet (13k base)**:\n"
+            "• 100% → **13k** torpor\n"
+            "• 200% → **26k** torpor\n"
+            "• 300% → **39k** torpor\n\n"
+            "⚠️ *Values tested on a Bronto. Torpor per hit varies by dino.*"
+        ),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="💡 Taming Tips",
+        value=(
+            "• Use the **Awesome Spyglass** to monitor torpor & max torpor in real time\n"
+            "• Higher tier ammo isn't always needed — Potent/Alpha works fine on weaker dinos\n"
+            "• Mythic/Primal Bullets recommended for high-level Chaos dinos or boss tames\n"
+            "• **Boss dinos** must be brought below 20% HP before they take any torpor"
+        ),
+        inline=False,
+    )
+
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed)
+
+
+# ── /suggestion ────────────────────────────────────────────────────────────────
+@tree.command(name="suggestion", description="Submit a suggestion to the admins")
+@app_commands.describe(text="Your suggestion")
+async def suggestion_command(interaction: discord.Interaction, text: str):
+    suggestions_ch = discord.utils.get(interaction.guild.channels, name=SUGGESTIONS_CHANNEL)
+
+    if suggestions_ch is None:
+        await interaction.response.send_message(
+            f"❌ Could not find the **{SUGGESTIONS_CHANNEL}** channel.",
+            ephemeral=True,
+        )
+        return
+
+    embed = discord.Embed(
+        title="💡 New Suggestion",
+        description=text,
+        color=discord.Color.gold(),
+    )
+    embed.set_author(
+        name=interaction.user.display_name,
+        icon_url=interaction.user.display_avatar.url,
+    )
+    embed.set_footer(text=f"User ID: {interaction.user.id} | Primal Hell • ARK Survival Ascended")
+
+    msg = await suggestions_ch.send(embed=embed)
+
+    # Add voting reactions
+    await msg.add_reaction("✅")
+    await msg.add_reaction("➖")
+    await msg.add_reaction("❌")
+
+    await interaction.response.send_message(
+        f"✅ Your suggestion has been submitted to {suggestions_ch.mention}!",
+        ephemeral=True,
+    )
 
 
 # ── Start ──────────────────────────────────────────────────────────────────────
