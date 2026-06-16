@@ -21,7 +21,7 @@ DROPS = {
         "double": (
             "• Alles aus Normal\n"
             "• Crossbow\n"
-            "• 25x Tranq Arrows\n"
+            "• 20x Potent Tranq Arrows\n"
             "• 1–3x Small XP Potion"
         ),
         "quality": "Primitiv",
@@ -49,7 +49,7 @@ DROPS = {
             "• 15–35x Potent/Alpha Tranq Arrows\n"
             "• 2–5x Alpha Health Potion\n"
             "• 2–5x Medium XP Potion\n\n"
-            "**Pool (3–8 Items, 85% Item / 15% BP):**\n"
+            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
             "• Crossbow · Alpha Flak Set (5 Teile)\n"
             "• Alpha Pick · Hatchet · Sickle · Pike"
         ),
@@ -58,7 +58,7 @@ DROPS = {
             "• 15–35x Potent/Alpha Tranq Arrows\n"
             "• 2–5x Alpha Health Potion\n"
             "• 2–5x Medium XP Potion\n\n"
-            "**Pool (5–10 Items, 85% Item / 15% BP):**\n"
+            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
             "• Crossbow · Alpha Flak Set (5 Teile)\n"
             "• Alpha Pick · Hatchet · Sickle · Pike"
         ),
@@ -90,7 +90,7 @@ DROPS = {
             "• 8–25x Elemental ADV Sniper Bullets\n"
             "• 2–5x Large XP Potion\n"
             "• 1–5x Mythic Health Potion\n\n"
-            "**Pool (3–8 Items, 85% Item / 15% BP):**\n"
+            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
             "• Longneck · Volcanic Flak Set (5 Teile)\n"
             "• Volcanic Pick · Hatchet · Sickle · Pike"
         ),
@@ -102,20 +102,20 @@ DROPS = {
             "• 1–5x Mythic Health Potion\n"
             "• Elemental Compound Bow Arrows\n"
             "• Fab Sniper Mastercraft\n\n"
-            "**Pool (5–10 Items, 85% Item / 15% BP):**\n"
+            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
             "• Longneck · Volcanic Flak Set (5 Teile)\n"
             "• Volcanic Pick · Hatchet · Sickle · Pike"
         ),
         "quality": "—",
     },
     "red": {
-        "label": "🔴 Red — Endgame Exclusives",
+        "label": "🔴 Red — Primal/Mythic Tier",
         "normal": (
             "**Garantiert:**\n"
             "• 8–25x Mythic/Primal ADV Sniper Bullets\n"
             "• 1–2x Max XP Potion\n"
             "• 1–2x Nightmare Health Potion\n\n"
-            "**Pool (3–8 Items, 85% Item / 15% BP):**\n"
+            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
             "• Fab Sniper · Mythic Flak Set (5 Teile)\n"
             "• Legend Riot Set (5 Teile)"
         ),
@@ -125,7 +125,7 @@ DROPS = {
             "• 1–2x Max XP Potion\n"
             "• 1–2x Nightmare Health Potion\n"
             "• Primal ADV Sniper Bullets\n\n"
-            "**Pool (5–10 Items, 85% Item / 15% BP):**\n"
+            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
             "• Fab Sniper · Mythic Flak Set (5 Teile)\n"
             "• Legend Riot Set (5 Teile)"
         ),
@@ -156,7 +156,7 @@ async def check_channel(interaction: discord.Interaction) -> bool:
     app_commands.Choice(name="🔵 Blue — Alpha Tier",         value="blue"),
     app_commands.Choice(name="🟣 Purple — Structures",       value="purple"),
     app_commands.Choice(name="🟡 Yellow — Volcanic Tier",    value="yellow"),
-    app_commands.Choice(name="🔴 Red — Endgame Exclusives",  value="red"),
+    app_commands.Choice(name="🔴 Red — Primal/Mythic Tier",    value="red"),
 ])
 async def drop_command(interaction: discord.Interaction, color: str):
     if not await check_channel(interaction):
@@ -187,7 +187,7 @@ async def drops_command(interaction: discord.Interaction):
             "🔵 Blue → Alpha Tier\n"
             "🟣 Purple → Structures\n"
             "🟡 Yellow → Volcanic Tier\n"
-            "🔴 Red → Endgame Exclusives\n\n"
+            "🔴 Red → Primal/Mythic Tier\n\n"
             "Use `/drop <color>` for full details.\n"
             "**Double** = Crate mit Ring — immer besser!"
         )
