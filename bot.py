@@ -569,9 +569,17 @@ async def event_100_command(interaction: discord.Interaction):
 
     import random
     number = random.randint(1, 100)
+    global_ch = discord.utils.get(interaction.guild.channels, name="🌍｜chat")
+    if global_ch is None:
+        await interaction.response.send_message(
+            "❌ Could not find the **🌍｜chat** channel.", ephemeral=True
+        )
+        return
+
     active_giveaway[interaction.guild.id] = {
         "number": number,
-        "channel_id": events_ch.id,
+        "guess_channel_id": global_ch.id,
+        "announce_channel_id": events_ch.id,
     }
 
     embed = discord.Embed(
