@@ -186,11 +186,7 @@ async def commands_command(interaction: discord.Interaction):
         value="`/suggestion <text>` — Submit a suggestion to the admins",
         inline=False,
     )
-    embed.add_field(
-        name="🔴 Admin Only",
-        value="`/wipe` — Post a wild dino wipe announcement",
-        inline=False,
-    )
+
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed)
 
@@ -547,6 +543,56 @@ async def wipe_command(interaction: discord.Interaction):
 
 
 
+# ── Active Giveaway State ─────────────────────────────────────────────────────
+active_giveaway = {}   # guild_id → {"number": int, "channel_id": int}
+
+# ── /event-100 ────────────────────────────────────────────────────────────────
+@tree.command(name="event-100", description="[Admin only] Start a 1-100 guessing giveaway in #events")
+async def event_100_command(interaction: discord.Interaction):
+    role = discord.utils.get(interaction.guild.roles, name=WIPE_ROLE)
+    if role not in interaction.user.roles:
+        await interaction.response.send_message(
+            f"❌ You need the **{WIPE_ROLE}** role to use this command.",
+            ephemeral=True,
+        )
+        return
+
+    if not await check_channel(interaction):
+        return
+
+    events_ch = discord.utils.get(interaction.guild.channels, name="🎉｜events")
+    if events_ch is None:
+        await interaction.response.send_message(
+            "❌ Could not find the **🎉｜events** channel.", ephemeral=True
+        )
+        return
+
+    import random
+    number = random.randint(1, 100)
+    active_giveaway[interaction.guild.id] = {
+        "number": number,
+        "channel_id": events_ch.id,
+    }
+
+    embed = discord.Embed(
+        title="🎉 Global Chat Giveaway!",
+        description=(
+            "A giveaway is now live in the **Global Chat**!\n\n"
+            "Guess a number between **1 and 100**.\n"
+            "The first player to guess the correct number wins a surprise! 🎁\n\n"
+            "Type your guess directly in this channel. Good luck! 🍀"
+        ),
+        color=discord.Color.gold(),
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+
+    msg = await events_ch.send(content="@everyone", embed=embed)
+
+    await interaction.response.send_message(
+        f"✅ Giveaway started in {events_ch.mention}. Secret number: **{number}**",
+        ephemeral=True,
+    )
+
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
 @client.event
 async def on_message(message: discord.Message):
@@ -554,10 +600,33 @@ async def on_message(message: discord.Message):
     if message.author == client.user:
         return
     # Only react to the GitHub webhook bot in the server-changes channel
+    # GitHub webhook → @everyone
     if (message.author.bot
             and message.author != client.user
             and message.channel.name == SERVER_CHANGES_CH):
         await message.channel.send("@everyone")
+
+    # Giveaway guess detection
+    if not message.author.bot and message.guild:
+        giveaway = active_giveaway.get(message.guild.id)
+        if giveaway and message.channel.id == giveaway["channel_id"]:
+            try:
+                guess = int(message.content.strip())
+            except ValueError:
+                return
+            if guess == giveaway["number"]:
+                del active_giveaway[message.guild.id]
+                embed = discord.Embed(
+                    title="🎉 We have a winner!",
+                    description=(
+                        f"Congratulations {message.author.mention}! 🏆\n\n"
+                        f"The correct number was **{guess}**!\n"
+                        "Please open a ticket in **#ticket-system** to claim your surprise! 🎁"
+                    ),
+                    color=discord.Color.green(),
+                )
+                embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+                await message.channel.send(content=f"@everyone", embed=embed)
 
 # ── Start ──────────────────────────────────────────────────────────────────────
 @client.event
