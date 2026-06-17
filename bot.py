@@ -550,8 +550,13 @@ async def wipe_command(interaction: discord.Interaction):
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
 @client.event
 async def on_message(message: discord.Message):
+    # Ignore own messages to prevent infinite loop
+    if message.author == client.user:
+        return
     # Only react to the GitHub webhook bot in the server-changes channel
-    if message.author.bot and message.channel.name == SERVER_CHANGES_CH:
+    if (message.author.bot
+            and message.author != client.user
+            and message.channel.name == SERVER_CHANGES_CH):
         await message.channel.send("@everyone")
 
 # ── Start ──────────────────────────────────────────────────────────────────────
