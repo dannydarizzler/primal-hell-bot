@@ -538,16 +538,10 @@ async def wipe_command(interaction: discord.Interaction):
     )
     embed.set_footer(text=f"Announced by {interaction.user.display_name} • Primal Hell")
 
-    msg = await announcements_ch.send(content="@everyone", embed=embed)
-
-    try:
-        await msg.pin()
-        pin_note = "posted and pinned"
-    except discord.Forbidden:
-        pin_note = "posted (pinning failed — give the bot **Manage Messages** in that channel)"
+    await announcements_ch.send(content="@everyone", embed=embed)
 
     await interaction.response.send_message(
-        f"✅ Wipe warning {pin_note} in {announcements_ch.mention}.",
+        f"✅ Wipe warning posted in {announcements_ch.mention}.",
         ephemeral=True,
     )
 
