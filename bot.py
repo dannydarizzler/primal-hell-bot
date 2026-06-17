@@ -4,10 +4,12 @@ import os
 
 # ── Bot Setup ──────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
+intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-SUGGESTIONS_CHANNEL = "❓｜suggestions"
+SUGGESTIONS_CHANNEL  = "❓｜suggestions"
+SERVER_CHANGES_CH    = "🔧｜server-changes"
 WIPE_ROLE           = "Admin"          # only members with this role can use /wipe
 COMMANDS_CHANNEL    = "🔎｜commands"
 
@@ -417,13 +419,13 @@ async def mods_command(interaction: discord.Interaction):
 
 
 # ── /armor ─────────────────────────────────────────────────────────────────────
-@tree.command(name="armor", description="Armor tier overview with perks")
+@tree.command(name="armor-guide", description="Armor tier overview with perks")
 async def armor_command(interaction: discord.Interaction):
     if not await check_channel(interaction):
         return
 
     embed = discord.Embed(
-        title="🛡️ Armor Tiers — Primal Chaos",
+        title="🛡️ Primal Chaos Armor Guide",
         description=(
             "Armor progresses through 5 tiers. Higher tiers offer better protection "
             "and unique passive perks on certain pieces.\n\u200b"
@@ -537,14 +539,26 @@ async def wipe_command(interaction: discord.Interaction):
     embed.set_footer(text=f"Announced by {interaction.user.display_name} • Primal Hell")
 
     msg = await announcements_ch.send(content="@everyone", embed=embed)
-    await msg.pin()
+
+    try:
+        await msg.pin()
+        pin_note = "posted and pinned"
+    except discord.Forbidden:
+        pin_note = "posted (pinning failed — give the bot **Manage Messages** in that channel)"
 
     await interaction.response.send_message(
-        f"✅ Wipe warning posted and pinned in {announcements_ch.mention}.",
+        f"✅ Wipe warning {pin_note} in {announcements_ch.mention}.",
         ephemeral=True,
     )
 
 
+
+# ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
+@client.event
+async def on_message(message: discord.Message):
+    # Only react to the GitHub webhook bot in the server-changes channel
+    if message.author.bot and message.channel.name == SERVER_CHANGES_CH:
+        await message.channel.send("@everyone")
 
 # ── Start ──────────────────────────────────────────────────────────────────────
 @client.event
