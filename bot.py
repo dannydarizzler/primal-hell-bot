@@ -617,13 +617,14 @@ async def on_message(message: discord.Message):
     # Giveaway guess detection
     if not message.author.bot and message.guild:
         giveaway = active_giveaway.get(message.guild.id)
-        if giveaway and message.channel.id == giveaway["channel_id"]:
+        if giveaway and message.channel.id == giveaway["guess_channel_id"]:
             try:
                 guess = int(message.content.strip())
             except ValueError:
                 return
             if guess == giveaway["number"]:
                 del active_giveaway[message.guild.id]
+                announce_ch = message.guild.get_channel(giveaway["announce_channel_id"])
                 embed = discord.Embed(
                     title="🎉 We have a winner!",
                     description=(
@@ -634,7 +635,8 @@ async def on_message(message: discord.Message):
                     color=discord.Color.green(),
                 )
                 embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-                await message.channel.send(content=f"@everyone", embed=embed)
+                if announce_ch:
+                    await announce_ch.send(content="@everyone", embed=embed)
 
 # ── Start ──────────────────────────────────────────────────────────────────────
 @client.event
