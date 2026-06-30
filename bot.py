@@ -18,19 +18,19 @@ DROPS = {
     "white": {
         "label": "⚪ White — Starter Kit",
         "normal": (
-            "• Hide Toxic Rüstung (5 Teile)\n"
+            "• Toxic Hide Armor (5 pieces)\n"
             "• 10x Bola\n"
             "• Metal Pick\n"
             "• Metal Hatchet\n"
             "• 10x Med Brew"
         ),
         "double": (
-            "• Alles aus Normal\n"
+            "• Everything from Normal\n"
             "• Crossbow\n"
             "• 20x Potent Tranq Arrows\n"
             "• 1–3x Small XP Potion"
         ),
-        "quality": "Primitiv",
+        "quality": "Primitive",
     },
     "green": {
         "label": "🟢 Green — Resources",
@@ -38,34 +38,34 @@ DROPS = {
             "• 75–175x Polymer\n"
             "• 75–175x Cementing Paste\n"
             "• 75–175x Silica Pearls\n"
-            "• 75–175x Öl"
+            "• 75–175x Oil"
         ),
         "double": (
             "• 125–250x Polymer\n"
             "• 125–250x Cementing Paste\n"
             "• 125–250x Silica Pearls\n"
-            "• 125–250x Öl"
+            "• 125–250x Oil"
         ),
         "quality": "—",
     },
     "blue": {
         "label": "🔵 Blue — Alpha Tier",
         "normal": (
-            "**Garantiert:**\n"
+            "**Guaranteed:**\n"
             "• 15–35x Potent/Alpha Tranq Arrows\n"
             "• 2–5x Alpha Health Potion\n"
             "• 2–5x Medium XP Potion\n\n"
-            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
-            "• Crossbow · Alpha Flak Set (5 Teile)\n"
+            "**Gear Pool (1–5 items, no Blueprints):**\n"
+            "• Crossbow · Alpha Flak Set (5 pieces)\n"
             "• Alpha Pick · Hatchet · Sickle · Pike"
         ),
         "double": (
-            "**Garantiert:**\n"
+            "**Guaranteed:**\n"
             "• 15–35x Potent/Alpha Tranq Arrows\n"
             "• 2–5x Alpha Health Potion\n"
             "• 2–5x Medium XP Potion\n\n"
-            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
-            "• Crossbow · Alpha Flak Set (5 Teile)\n"
+            "**Gear Pool (3–7 items, 20% Blueprint chance each):**\n"
+            "• Crossbow · Alpha Flak Set (5 pieces)\n"
             "• Alpha Pick · Hatchet · Sickle · Pike"
         ),
         "quality": "—",
@@ -91,49 +91,50 @@ DROPS = {
     "yellow": {
         "label": "🟡 Yellow — Volcanic Tier",
         "normal": (
-            "**Garantiert:**\n"
-            "• 15–35x Tranq Dart (zufällig: Elemental/Alpha/Potent)\n"
-            "• 8–25x Elemental ADV Sniper Bullets\n"
+            "**Guaranteed:**\n"
+            "• 10–20x Tranq Dart (random: Elemental/Alpha/Potent)\n"
+            "• 8–16x Elemental ADV Sniper Bullets\n"
             "• 2–5x Large XP Potion\n"
             "• 1–5x Mythic Health Potion\n\n"
-            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
-            "• Longneck · Volcanic Flak Set (5 Teile)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike"
+            "**Gear Pool (1–5 items, no Blueprints):**\n"
+            "• Longneck · Volcanic Flak Set (5 pieces)\n"
+            "• Volcanic Pick · Hatchet · Sickle · Pike · Fab Sniper (Mastercraft)"
         ),
         "double": (
-            "**Garantiert:**\n"
-            "• 15–35x Tranq Dart (zufällig: Elemental/Alpha/Potent)\n"
-            "• 8–25x Elemental ADV Sniper Bullets\n"
+            "**Guaranteed:**\n"
+            "• 10–20x Tranq Dart (random: Elemental/Alpha/Potent)\n"
+            "• 8–24x Elemental ADV Sniper Bullets\n"
             "• 2–5x Large XP Potion\n"
-            "• 1–5x Mythic Health Potion\n"
-            "• Elemental Compound Bow Arrows\n"
-            "• Fab Sniper Mastercraft\n\n"
-            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
-            "• Longneck · Volcanic Flak Set (5 Teile)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike"
+            "• 1–5x Mythic Health Potion\n\n"
+            "**Gear Pool (1–5 items, 20% Blueprint chance each):**\n"
+            "• Longneck · Volcanic Flak Set (5 pieces)\n"
+            "• Volcanic Pick · Hatchet · Sickle · Pike · Fab Sniper (Mastercraft)"
         ),
         "quality": "—",
     },
     "red": {
-        "label": "🔴 Red — Primal/Mythic Tier",
+        "label": "🔴 Red — Endgame Exclusives",
         "normal": (
-            "**Garantiert:**\n"
-            "• 8–25x Mythic/Primal ADV Sniper Bullets\n"
-            "• 1–2x Max XP Potion\n"
-            "• 1–2x Nightmare Health Potion\n\n"
-            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
-            "• Fab Sniper · Mythic Flak Set (5 Teile)\n"
-            "• Legend Riot Set (5 Teile)"
-        ),
-        "double": (
-            "**Garantiert:**\n"
-            "• 8–25x Mythic/Primal ADV Sniper Bullets\n"
+            "**Guaranteed:**\n"
+            "• 8–25x Mythic/Primal ADV Sniper Bullets (random)\n"
             "• 1–2x Max XP Potion\n"
             "• 1–2x Nightmare Health Potion\n"
-            "• Primal ADV Sniper Bullets\n\n"
-            "**Pool (1–5 Items, 85% Item / 15% BP):**\n"
-            "• Fab Sniper · Mythic Flak Set (5 Teile)\n"
-            "• Legend Riot Set (5 Teile)"
+            "• 8–25x Primal Compound Bow Arrows\n\n"
+            "**Gear Pool (1–5 items, no Blueprints):**\n"
+            "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
+            "• Legend Riot Set (5 pieces)"
+        ),
+        "double": (
+            "**Guaranteed:**\n"
+            "• 8–25x Mythic/Primal ADV Sniper Bullets (random)\n"
+            "• 1–2x Max XP Potion\n"
+            "• 1–2x Nightmare Health Potion\n"
+            "• 8–25x Primal Compound Bow Arrows\n"
+            "• Additional guaranteed Primal ADV Sniper Bullets\n\n"
+            "**Gear Pool (1–5 items, 20% Blueprint chance each):**\n"
+            "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
+            "• Legend Riot Set (5 pieces)\n"
+            "• Compound Bow Blueprint (always Blueprint)"
         ),
         "quality": "—",
     },
@@ -143,9 +144,9 @@ DROPS = {
 async def check_channel(interaction: discord.Interaction) -> bool:
     if interaction.channel.name != COMMANDS_CHANNEL:
         correct = discord.utils.get(interaction.guild.channels, name=COMMANDS_CHANNEL)
-        hinweis = f"<#{correct.id}>" if correct else f"**{COMMANDS_CHANNEL}**"
+        channel_mention = f"<#{correct.id}>" if correct else f"**{COMMANDS_CHANNEL}**"
         await interaction.response.send_message(
-            f"This command only works in {hinweis}.",
+            f"This command only works in {channel_mention}.",
             ephemeral=True,
         )
         return False
@@ -173,7 +174,7 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="🛡️ Armor",
-        value="`/armor` — All armor tiers from Hide Toxic to Legend Riot, including perks",
+        value="`/armor-guide` — All armor tiers from Hide Toxic to Legend Riot, including perks",
         inline=False,
     )
     embed.add_field(
@@ -195,12 +196,12 @@ async def commands_command(interaction: discord.Interaction):
 @tree.command(name="drop", description="Shows the contents of a loot drop")
 @app_commands.describe(color="Which drop color?")
 @app_commands.choices(color=[
-    app_commands.Choice(name="⚪ White — Starter Kit",      value="white"),
-    app_commands.Choice(name="🟢 Green — Resources",        value="green"),
-    app_commands.Choice(name="🔵 Blue — Alpha Tier",        value="blue"),
-    app_commands.Choice(name="🟣 Purple — Structures",      value="purple"),
-    app_commands.Choice(name="🟡 Yellow — Volcanic Tier",   value="yellow"),
-    app_commands.Choice(name="🔴 Red — Primal/Mythic Tier", value="red"),
+    app_commands.Choice(name="⚪ White — Starter Kit",       value="white"),
+    app_commands.Choice(name="🟢 Green — Resources",         value="green"),
+    app_commands.Choice(name="🔵 Blue — Alpha Tier",         value="blue"),
+    app_commands.Choice(name="🟣 Purple — Structures",       value="purple"),
+    app_commands.Choice(name="🟡 Yellow — Volcanic Tier",    value="yellow"),
+    app_commands.Choice(name="🔴 Red — Endgame Exclusives",  value="red"),
 ])
 async def drop_command(interaction: discord.Interaction, color: str):
     if not await check_channel(interaction):
@@ -211,8 +212,8 @@ async def drop_command(interaction: discord.Interaction, color: str):
 
     embed = discord.Embed(title=f"Drop — {data['label']}")
     embed.add_field(name="Normal", value=data["normal"] + q, inline=False)
-    embed.add_field(name="\u200b", value="\u200b", inline=False)
-    embed.add_field(name="Double (mit Ring)", value=data["double"] + q, inline=False)
+    embed.add_field(name="\u200b", value="\u200b", inline=False)  # spacer
+    embed.add_field(name="Double (with Ring)", value=data["double"] + q, inline=False)
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed)
 
@@ -231,9 +232,9 @@ async def drops_command(interaction: discord.Interaction):
             "🔵 Blue → Alpha Tier\n"
             "🟣 Purple → Structures\n"
             "🟡 Yellow → Volcanic Tier\n"
-            "🔴 Red → Primal/Mythic Tier\n\n"
+            "🔴 Red → Endgame Exclusives\n\n"
             "Use `/drop <color>` for full details.\n"
-            "**Double** = Crate mit Ring — immer besser!"
+            "**Double** = Crate with ring — always better!"
         )
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
@@ -414,7 +415,7 @@ async def mods_command(interaction: discord.Interaction):
 
 
 
-# ── /armor ─────────────────────────────────────────────────────────────────────
+# ── /armor-guide ───────────────────────────────────────────────────────────────
 @tree.command(name="armor-guide", description="Armor tier overview with perks")
 async def armor_command(interaction: discord.Interaction):
     if not await check_channel(interaction):
@@ -424,7 +425,8 @@ async def armor_command(interaction: discord.Interaction):
         title="🛡️ Primal Chaos Armor Guide",
         description=(
             "Armor progresses through 5 tiers. Higher tiers offer better protection "
-            "and unique passive perks on certain pieces.\n\u200b"
+            "and unique passive perks on certain pieces. All Primal Chaos flak armors "
+            "drop exclusively as Blueprints.\n\u200b"
         ),
     )
     embed.add_field(
@@ -439,7 +441,7 @@ async def armor_command(interaction: discord.Interaction):
         name="2️⃣ Alpha Flak — Alpha Tier",
         value=(
             "Solid mid-game armor, upgrade from Toxic Hide.\n"
-            "Available from the 🔵 **Blue drop** (85% item / 15% BP)."
+            "Available from the 🔵 **Blue drop** (Blueprint, Double only)."
         ),
         inline=False,
     )
@@ -447,7 +449,7 @@ async def armor_command(interaction: discord.Interaction):
         name="3️⃣ Volcanic Flak — Volcanic Tier",
         value=(
             "Strong late-game armor with improved stats.\n"
-            "Available from the 🟡 **Yellow drop** (85% item / 15% BP)."
+            "Available from the 🟡 **Yellow drop** (Blueprint, Double only)."
         ),
         inline=False,
     )
@@ -455,7 +457,7 @@ async def armor_command(interaction: discord.Interaction):
         name="4️⃣ Mythic Flak — Mythic Tier ⭐ (2500 armor)",
         value=(
             "High-end armor with piece-specific passive perks.\n"
-            "Available from the 🔴 **Red drop** (85% item / 15% BP).\n\n"
+            "Available from the 🔴 **Red drop** (Blueprint, Double only).\n\n"
             "🪖 Helmet → **×4 Food & Water**\n"
             "👕 Chestpiece → **×4 Weight**\n"
             "🧤 Gauntlets → **×4 Crafting Speed**\n"
@@ -468,7 +470,7 @@ async def armor_command(interaction: discord.Interaction):
         name="5️⃣ Legend Riot — Legend Tier ⭐⭐ (3000 armor)",
         value=(
             "Top-tier armor with the strongest passive perks.\n"
-            "Available from the 🔴 **Red drop** (85% item / 15% BP).\n\n"
+            "Available from the 🔴 **Red drop** (Blueprint, Double only).\n\n"
             "🪖 Helmet → **×4 Health**\n"
             "👕 Chestpiece → **×4 Torpor Resistance**\n"
             "🧤 Gauntlets → **×4 Melee Damage**\n"
@@ -491,10 +493,10 @@ async def armor_command(interaction: discord.Interaction):
     embed.add_field(
         name="📝 Notes",
         value=(
-            "• BPs can be found in supply drops\n"
+            "• Flak Blueprints can be found in supply drops\n"
             "• The **Upgrade Station** can upgrade finished armor pieces to higher quality\n"
             "• ⚠️ The Upgrade Station works on **ARK base items only** — "
-            "Primal Chaos armor (e.g. Reaper saddle) cannot be upgraded"
+            "Primal Chaos items with no base ARK equivalent (e.g. Reaper saddle) cannot be upgraded"
         ),
         inline=True,
     )
