@@ -169,12 +169,12 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="🎯 Taming",
-        value="`/taming-guide` — Tranq ammo tiers & Fab Sniper damage multiplier explained",
+        value="`/taming-guide` — Ammo tiers & damage multiplier explained",
         inline=False,
     )
     embed.add_field(
         name="🛡️ Armor",
-        value="`/armor-guide` — All armor tiers from Hide Toxic to Legend Riot, including perks",
+        value="`/armor-guide` — All armor tiers and perks explained",
         inline=False,
     )
     embed.add_field(
@@ -184,7 +184,7 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="💡 Suggestions",
-        value="`/suggestion <text>` — Submit a suggestion to the admins",
+        value="`/suggestion <text>` — Submit a suggestion",
         inline=False,
     )
 
@@ -364,7 +364,7 @@ async def mods_command(interaction: discord.Interaction):
         name="⚔️ Gameplay Overhaul",
         value=(
             "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses\n"
-            "**Upgrade Station** — Upgrade any item to higher quality tiers"
+            "**Tribute Table** — Can be used to craft any boss artifacts & tributes"
         ),
         inline=False,
     )
@@ -384,6 +384,7 @@ async def mods_command(interaction: discord.Interaction):
             "**A Simple Performance Mod (60 FPS)** — Automatically runs performance commands on join "
             "(see below for full list)\n"
             "**Crash Protector** — Protects your character from wild dinos and drowning when you crash\n"
+            "**Better Breeding** — Garanties always the better stats while breeding\n"
             "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required"
         ),
         inline=False,
