@@ -917,8 +917,9 @@ POLL_NUMBER_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6�
 @app_commands.describe(
     question="The poll question",
     options="Answer options separated by | (e.g. Ragnarok|Valguero|The Island)",
+    info="Optional note shown below the question (e.g. '2 Maps can win this poll')",
 )
-async def poll_command(interaction: discord.Interaction, question: str, options: str):
+async def poll_command(interaction: discord.Interaction, question: str, options: str, info: str = None):
     user_role_names = {role.name for role in interaction.user.roles}
     if not user_role_names.intersection(POLL_ROLES):
         roles_text = " / ".join(POLL_ROLES)
@@ -951,9 +952,10 @@ async def poll_command(interaction: discord.Interaction, question: str, options:
         )
         return
 
-    description = "\n\n".join(
+    options_text = "\n\n".join(
         f"{POLL_NUMBER_EMOJIS[i]}  {opt}" for i, opt in enumerate(option_list)
     )
+    description = f"ℹ️ {info}\n\n{options_text}" if info else options_text
 
     embed = discord.Embed(
         title=f"📊 {question}",
