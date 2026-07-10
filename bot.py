@@ -2,6 +2,9 @@ import discord
 from discord import app_commands
 import os
 import random
+import re
+import time
+import asyncio
 
 # ── Bot Setup ──────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
@@ -14,6 +17,7 @@ SERVER_CHANGES_CH    = "🔧｜server-changes"
 WIPE_ROLE           = "Admin"          # only members with this role can use /wipe
 COMMANDS_CHANNEL    = "🔎｜commands"
 MYSTERYBOX_ROLES    = ["Admin", "Owner"]   # only these roles can open mystery boxes
+GIVEAWAY_ROLES      = ["Admin", "Owner"]   # only these roles can start giveaways
 
 # ── Mystery Box Config ─────────────────────────────────────────────────────────
 # Adjust these two to match how your Ticket Tool actually names channels/categories.
@@ -256,6 +260,11 @@ async def commands_command(interaction: discord.Interaction):
             "`/mysterybox2` — Open 2 Mystery Boxes\n"
             "`/mysterybox3` — Open 3 Mystery Boxes"
         ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🎉 Giveaways",
+        value="`/giveaway-start` — [Admin only] Start a new giveaway",
         inline=False,
     )
 
@@ -702,6 +711,190 @@ async def event_500_10_command(interaction: discord.Interaction):
 async def event_1000_20_command(interaction: discord.Interaction):
     cfg = EVENT_CONFIGS["1000"]
     await start_guess_event(interaction, cfg["range_max"], cfg["reward"])
+
+
+# ── Giveaway System ─────────────────────────────────────────────────────────────
+active_giveaways = {}  # message_id → {prize, host_id, winners_count, entries, end_time, channel_id}
+
+_DURATION_PATTERN = re.compile(r'(\d+)\s*(d|h|m|s)', re.IGNORECASE)
+
+
+def parse_duration(duration_str: str) -> int | None:
+    """Parses strings like '1d2h30m' or '2h' into total seconds. Returns None if invalid."""
+    matches = _DURATION_PATTERN.findall(duration_str.replace(" ", ""))
+    if not matches:
+        return None
+    unit_seconds = {"d": 86400, "h": 3600, "m": 60, "s": 1}
+    total = sum(int(value) * unit_seconds[unit.lower()] for value, unit in matches)
+    return total if total > 0 else None
+
+
+def format_duration(seconds: int) -> str:
+    days, rem = divmod(int(seconds), 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, _ = divmod(rem, 60)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    return " ".join(parts) if parts else "< 1m"
+
+
+def build_giveaway_embed(giveaway: dict, ended: bool = False) -> discord.Embed:
+    end_ts = int(giveaway["end_time"])
+    title = f"🎉 {giveaway['prize']}" + (" — ENDED" if ended else "")
+    embed = discord.Embed(
+        title=title,
+        description=(
+            f"Ends: <t:{end_ts}:R> (<t:{end_ts}:f>)\n"
+            f"Hosted by: <@{giveaway['host_id']}>\n"
+            f"Entries: **{len(giveaway['entries'])}**\n"
+            f"Winners: **{giveaway['winners_count']}**"
+        ),
+        color=discord.Color.dark_grey() if ended else discord.Color.blurple(),
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    return embed
+
+
+class GiveawayView(discord.ui.View):
+    def __init__(self, message_id: int):
+        super().__init__(timeout=None)
+        self.message_id = message_id
+
+    @discord.ui.button(label="🎉 Join Giveaway", style=discord.ButtonStyle.blurple, custom_id="giveaway_join")
+    async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        giveaway = active_giveaways.get(self.message_id)
+        if giveaway is None:
+            await interaction.response.send_message("❌ This giveaway has already ended.", ephemeral=True)
+            return
+
+        if interaction.user.id in giveaway["entries"]:
+            await interaction.response.send_message("✅ You're already entered in this giveaway!", ephemeral=True)
+            return
+
+        giveaway["entries"].add(interaction.user.id)
+        await interaction.response.send_message("🎉 You've entered the giveaway! Good luck!", ephemeral=True)
+
+        embed = build_giveaway_embed(giveaway)
+        try:
+            await interaction.message.edit(embed=embed)
+        except discord.HTTPException:
+            pass
+
+
+class GiveawayModal(discord.ui.Modal, title="🎉 Start a Giveaway"):
+    prize = discord.ui.TextInput(label="Prize", placeholder="e.g. Solo 180 Ascension", max_length=200)
+    duration = discord.ui.TextInput(label="Duration (e.g. 1d, 2h30m, 45m)", placeholder="1d", max_length=20)
+    winners = discord.ui.TextInput(label="Number of Winners", placeholder="1", max_length=3)
+
+    def __init__(self, channel: discord.TextChannel):
+        super().__init__()
+        self.channel = channel
+
+    async def on_submit(self, interaction: discord.Interaction):
+        seconds = parse_duration(self.duration.value)
+        if seconds is None:
+            await interaction.response.send_message(
+                "❌ Invalid duration format. Use combinations like `1d`, `2h30m`, `45m`.",
+                ephemeral=True,
+            )
+            return
+
+        try:
+            winners_count = int(self.winners.value)
+            if winners_count < 1:
+                raise ValueError
+        except ValueError:
+            await interaction.response.send_message(
+                "❌ Winners must be a positive whole number.", ephemeral=True
+            )
+            return
+
+        end_time = time.time() + seconds
+
+        giveaway = {
+            "prize": self.prize.value,
+            "host_id": interaction.user.id,
+            "winners_count": winners_count,
+            "entries": set(),
+            "end_time": end_time,
+            "channel_id": self.channel.id,
+        }
+
+        embed = build_giveaway_embed(giveaway)
+        view = GiveawayView(message_id=0)  # message_id patched right after sending
+        msg = await self.channel.send(embed=embed, view=view)
+        view.message_id = msg.id
+        active_giveaways[msg.id] = giveaway
+
+        await interaction.response.send_message(
+            f"✅ Giveaway started in {self.channel.mention}! Ends in {format_duration(seconds)}.",
+            ephemeral=True,
+        )
+
+        asyncio.create_task(end_giveaway_after(msg.id, seconds))
+
+
+async def end_giveaway_after(message_id: int, delay: float):
+    await asyncio.sleep(delay)
+    await finish_giveaway(message_id)
+
+
+async def finish_giveaway(message_id: int):
+    giveaway = active_giveaways.pop(message_id, None)
+    if giveaway is None:
+        return  # already ended or bot restarted in the meantime
+
+    channel = client.get_channel(giveaway["channel_id"])
+    if channel is None:
+        return
+
+    try:
+        msg = await channel.fetch_message(message_id)
+        await msg.edit(embed=build_giveaway_embed(giveaway, ended=True), view=None)
+    except discord.HTTPException:
+        pass
+
+    entries = list(giveaway["entries"])
+    if not entries:
+        await channel.send(f"😔 No one entered the **{giveaway['prize']}** giveaway — no winner could be drawn.")
+        return
+
+    winners_count = min(giveaway["winners_count"], len(entries))
+    winners = random.sample(entries, winners_count)
+    winner_mentions = ", ".join(f"<@{uid}>" for uid in winners)
+
+    result_embed = discord.Embed(
+        title="🎉 Giveaway Ended!",
+        description=(
+            f"**Prize:** {giveaway['prize']}\n"
+            f"**Winner{'s' if winners_count > 1 else ''}:** {winner_mentions}\n\n"
+            "Please open a ticket in **#ticket-system** to claim your prize!"
+        ),
+        color=discord.Color.green(),
+    )
+    result_embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await channel.send(content=winner_mentions, embed=result_embed)
+
+
+# ── /giveaway-start ─────────────────────────────────────────────────────────────
+@tree.command(name="giveaway-start", description="[Admin only] Start a new giveaway")
+@app_commands.describe(channel="Channel to post the giveaway in (defaults to the current channel)")
+async def giveaway_start_command(interaction: discord.Interaction, channel: discord.TextChannel = None):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(GIVEAWAY_ROLES):
+        roles_text = " / ".join(GIVEAWAY_ROLES)
+        await interaction.response.send_message(
+            f"❌ Only **{roles_text}** can start giveaways.", ephemeral=True
+        )
+        return
+
+    target_channel = channel or interaction.channel
+    await interaction.response.send_modal(GiveawayModal(target_channel))
 
 
 # ── Mystery Box Logic ──────────────────────────────────────────────────────────
