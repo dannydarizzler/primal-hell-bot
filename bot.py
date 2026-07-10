@@ -424,7 +424,7 @@ async def mods_command(interaction: discord.Interaction):
         name="⚔️ Gameplay Overhaul",
         value=(
             "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses\n"
-            "**Tribute Table** — Can be used to craft any boss artifacts & tributes"
+            
         ),
         inline=False,
     )
