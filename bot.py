@@ -18,6 +18,7 @@ WIPE_ROLE           = "Admin"          # only members with this role can use /wi
 COMMANDS_CHANNEL    = "🔎｜commands"
 MYSTERYBOX_ROLES    = ["Admin", "Owner"]   # only these roles can open mystery boxes
 GIVEAWAY_ROLES      = ["Admin", "Owner"]   # only these roles can start giveaways
+GIVEAWAY_CHANNEL    = "🎁｜giveaways"        # giveaways always post here
 
 # ── Mystery Box Config ─────────────────────────────────────────────────────────
 # Adjust these two to match how your Ticket Tool actually names channels/categories.
@@ -264,7 +265,7 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="🎉 Giveaways",
-        value="`/giveaway-start` — [Admin only] Start a new giveaway",
+        value="`/giveaway-start` — [Admin only] Start a new giveaway in #giveaways (24h/48h/72h/Custom)",
         inline=False,
     )
 
@@ -786,57 +787,37 @@ class GiveawayView(discord.ui.View):
             pass
 
 
-class GiveawayModal(discord.ui.Modal, title="🎉 Start a Giveaway"):
-    prize = discord.ui.TextInput(label="Prize", placeholder="e.g. Solo 180 Ascension", max_length=200)
-    duration = discord.ui.TextInput(label="Duration (e.g. 1d, 2h30m, 45m)", placeholder="1d", max_length=20)
-    winners = discord.ui.TextInput(label="Number of Winners", placeholder="1", max_length=3)
-
-    def __init__(self, channel: discord.TextChannel):
-        super().__init__()
-        self.channel = channel
-
-    async def on_submit(self, interaction: discord.Interaction):
-        seconds = parse_duration(self.duration.value)
-        if seconds is None:
-            await interaction.response.send_message(
-                "❌ Invalid duration format. Use combinations like `1d`, `2h30m`, `45m`.",
-                ephemeral=True,
-            )
-            return
-
-        try:
-            winners_count = int(self.winners.value)
-            if winners_count < 1:
-                raise ValueError
-        except ValueError:
-            await interaction.response.send_message(
-                "❌ Winners must be a positive whole number.", ephemeral=True
-            )
-            return
-
-        end_time = time.time() + seconds
-
-        giveaway = {
-            "prize": self.prize.value,
-            "host_id": interaction.user.id,
-            "winners_count": winners_count,
-            "entries": set(),
-            "end_time": end_time,
-            "channel_id": self.channel.id,
-        }
-
-        embed = build_giveaway_embed(giveaway)
-        view = GiveawayView(message_id=0)  # message_id patched right after sending
-        msg = await self.channel.send(embed=embed, view=view)
-        view.message_id = msg.id
-        active_giveaways[msg.id] = giveaway
-
+async def start_giveaway(interaction: discord.Interaction, prize: str, seconds: int, winners_count: int):
+    channel = discord.utils.get(interaction.guild.channels, name=GIVEAWAY_CHANNEL)
+    if channel is None:
         await interaction.response.send_message(
-            f"✅ Giveaway started in {self.channel.mention}! Ends in {format_duration(seconds)}.",
-            ephemeral=True,
+            f"❌ Could not find the **{GIVEAWAY_CHANNEL}** channel.", ephemeral=True
         )
+        return
 
-        asyncio.create_task(end_giveaway_after(msg.id, seconds))
+    end_time = time.time() + seconds
+
+    giveaway = {
+        "prize": prize,
+        "host_id": interaction.user.id,
+        "winners_count": winners_count,
+        "entries": set(),
+        "end_time": end_time,
+        "channel_id": channel.id,
+    }
+
+    embed = build_giveaway_embed(giveaway)
+    view = GiveawayView(message_id=0)  # message_id patched right after sending
+    msg = await channel.send(embed=embed, view=view)
+    view.message_id = msg.id
+    active_giveaways[msg.id] = giveaway
+
+    await interaction.response.send_message(
+        f"✅ Giveaway started in {channel.mention}! Ends in {format_duration(seconds)}.",
+        ephemeral=True,
+    )
+
+    asyncio.create_task(end_giveaway_after(msg.id, seconds))
 
 
 async def end_giveaway_after(message_id: int, delay: float):
@@ -882,9 +863,28 @@ async def finish_giveaway(message_id: int):
 
 
 # ── /giveaway-start ─────────────────────────────────────────────────────────────
-@tree.command(name="giveaway-start", description="[Admin only] Start a new giveaway")
-@app_commands.describe(channel="Channel to post the giveaway in (defaults to the current channel)")
-async def giveaway_start_command(interaction: discord.Interaction, channel: discord.TextChannel = None):
+# Duration is a fixed dropdown (24h / 48h / 72h / Custom). If "Custom" is picked,
+# the custom_duration field is required (e.g. "5d", "6h30m", "90m").
+@tree.command(name="giveaway-start", description="[Admin only] Start a new giveaway in #giveaways")
+@app_commands.describe(
+    prize="What are you giving away?",
+    duration="How long should the giveaway run?",
+    winners="How many winners?",
+    custom_duration="Only used when Duration = Custom (e.g. 5d, 6h30m, 90m)",
+)
+@app_commands.choices(duration=[
+    app_commands.Choice(name="24 Hours", value="24h"),
+    app_commands.Choice(name="48 Hours", value="48h"),
+    app_commands.Choice(name="72 Hours", value="72h"),
+    app_commands.Choice(name="Custom",   value="custom"),
+])
+async def giveaway_start_command(
+    interaction: discord.Interaction,
+    prize: str,
+    duration: app_commands.Choice[str],
+    winners: int,
+    custom_duration: str = None,
+):
     user_role_names = {role.name for role in interaction.user.roles}
     if not user_role_names.intersection(GIVEAWAY_ROLES):
         roles_text = " / ".join(GIVEAWAY_ROLES)
@@ -893,8 +893,31 @@ async def giveaway_start_command(interaction: discord.Interaction, channel: disc
         )
         return
 
-    target_channel = channel or interaction.channel
-    await interaction.response.send_modal(GiveawayModal(target_channel))
+    if winners < 1:
+        await interaction.response.send_message(
+            "❌ Winners must be a positive whole number.", ephemeral=True
+        )
+        return
+
+    if duration.value == "custom":
+        if not custom_duration:
+            await interaction.response.send_message(
+                "❌ You selected **Custom** — please also fill in `custom_duration` "
+                "(e.g. `5d`, `6h30m`, `90m`).",
+                ephemeral=True,
+            )
+            return
+        seconds = parse_duration(custom_duration)
+        if seconds is None:
+            await interaction.response.send_message(
+                "❌ Invalid custom duration format. Use combinations like `1d`, `2h30m`, `45m`.",
+                ephemeral=True,
+            )
+            return
+    else:
+        seconds = parse_duration(duration.value)
+
+    await start_giveaway(interaction, prize, seconds, winners)
 
 
 # ── Mystery Box Logic ──────────────────────────────────────────────────────────
