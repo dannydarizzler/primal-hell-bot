@@ -604,11 +604,18 @@ async def wipe_command(interaction: discord.Interaction):
 
 
 # ── Active Giveaway State ─────────────────────────────────────────────────────
-active_giveaway = {}   # guild_id → {"number": int, "channel_id": int}
+active_giveaway = {}   # guild_id → {"number", "guess_channel_id", "announce_channel_id", "range_max", "reward"}
 
-# ── /event-100 ────────────────────────────────────────────────────────────────
-@tree.command(name="event-100", description="[Admin only] Start a 1-100 guessing giveaway in #events")
-async def event_100_command(interaction: discord.Interaction):
+# ── Event Configs — add new tiers here if needed ───────────────────────────────
+EVENT_CONFIGS = {
+    "100":  {"range_max": 100,  "reward": "5€"},
+    "500":  {"range_max": 500,  "reward": "10€"},
+    "1000": {"range_max": 1000, "reward": "20€"},
+}
+
+
+# ── Generic Event Starter (shared logic for all guessing giveaways) ───────────
+async def start_guess_event(interaction: discord.Interaction, range_max: int, reward: str):
     role = discord.utils.get(interaction.guild.roles, name=WIPE_ROLE)
     if role not in interaction.user.roles:
         await interaction.response.send_message(
@@ -627,7 +634,6 @@ async def event_100_command(interaction: discord.Interaction):
         )
         return
 
-    number = random.randint(1, 100)
     global_ch = discord.utils.get(interaction.guild.channels, name="🌍｜chat")
     if global_ch is None:
         await interaction.response.send_message(
@@ -635,30 +641,56 @@ async def event_100_command(interaction: discord.Interaction):
         )
         return
 
+    number = random.randint(1, range_max)
+
     active_giveaway[interaction.guild.id] = {
         "number": number,
         "guess_channel_id": global_ch.id,
         "announce_channel_id": events_ch.id,
+        "range_max": range_max,
+        "reward": reward,
     }
 
     embed = discord.Embed(
         title="🎉 Global Chat Giveaway!",
         description=(
             "A giveaway is now live in the **Global Chat**!\n\n"
-            "Guess a number between **1 and 100**.\n"
-            "The first player to guess the correct number wins a surprise! 🎁\n\n"
+            f"Guess a number between **1 and {range_max}**.\n"
+            f"The first player to guess the correct number wins **{reward} Shop Credit**! 🎁\n\n"
             "Type your guess directly in this channel. Good luck! 🍀"
         ),
         color=discord.Color.gold(),
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
 
-    msg = await events_ch.send(content="@everyone", embed=embed)
+    await events_ch.send(content="@everyone", embed=embed)
 
     await interaction.response.send_message(
-        f"✅ Giveaway started in {events_ch.mention}. Secret number: **{number}**",
+        f"✅ Giveaway started in {events_ch.mention}. Range: 1–{range_max} | "
+        f"Reward: {reward} | Secret number: **{number}**",
         ephemeral=True,
     )
+
+
+# ── /event-100-5 ────────────────────────────────────────────────────────────────
+@tree.command(name="event-100-5", description="[Admin only] Start a 1-100 guessing giveaway — 5€ Shop Credit reward")
+async def event_100_5_command(interaction: discord.Interaction):
+    cfg = EVENT_CONFIGS["100"]
+    await start_guess_event(interaction, cfg["range_max"], cfg["reward"])
+
+
+# ── /event-500-10 ───────────────────────────────────────────────────────────────
+@tree.command(name="event-500-10", description="[Admin only] Start a 1-500 guessing giveaway — 10€ Shop Credit reward")
+async def event_500_10_command(interaction: discord.Interaction):
+    cfg = EVENT_CONFIGS["500"]
+    await start_guess_event(interaction, cfg["range_max"], cfg["reward"])
+
+
+# ── /event-1000-20 ──────────────────────────────────────────────────────────────
+@tree.command(name="event-1000-20", description="[Admin only] Start a 1-1000 guessing giveaway — 20€ Shop Credit reward")
+async def event_1000_20_command(interaction: discord.Interaction):
+    cfg = EVENT_CONFIGS["1000"]
+    await start_guess_event(interaction, cfg["range_max"], cfg["reward"])
 
 
 # ── Mystery Box Logic ──────────────────────────────────────────────────────────
@@ -723,12 +755,14 @@ async def on_message(message: discord.Message):
             if guess == giveaway["number"]:
                 del active_giveaway[message.guild.id]
                 announce_ch = message.guild.get_channel(giveaway["announce_channel_id"])
+                reward = giveaway["reward"]
                 embed = discord.Embed(
                     title="🎉 We have a winner!",
                     description=(
                         f"Congratulations {message.author.mention}! 🏆\n\n"
                         f"The correct number was **{guess}**!\n"
-                        "Please open a ticket in **#ticket-system** to claim your surprise! 🎁"
+                        f"You won **{reward} Shop Credit**! 🎁\n"
+                        "Please open a ticket in **#ticket-system** to claim your reward!"
                     ),
                     color=discord.Color.green(),
                 )
