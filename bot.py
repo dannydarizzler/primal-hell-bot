@@ -955,7 +955,7 @@ async def poll_command(interaction: discord.Interaction, question: str, options:
     options_text = "\n\n".join(
         f"{POLL_NUMBER_EMOJIS[i]}  {opt}" for i, opt in enumerate(option_list)
     )
-    description = f"ℹ️ {info}\n\n{options_text}" if info else options_text
+    description = f"{options_text}\n\n📌 {info}" if info else options_text
 
     embed = discord.Embed(
         title=f"📊 {question}",
