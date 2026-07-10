@@ -13,6 +13,7 @@ SUGGESTIONS_CHANNEL  = "❓｜suggestions"
 SERVER_CHANGES_CH    = "🔧｜server-changes"
 WIPE_ROLE           = "Admin"          # only members with this role can use /wipe
 COMMANDS_CHANNEL    = "🔎｜commands"
+MYSTERYBOX_ROLES    = ["Admin", "Owner"]   # only these roles can open mystery boxes
 
 # ── Mystery Box Config ─────────────────────────────────────────────────────────
 # Adjust these two to match how your Ticket Tool actually names channels/categories.
@@ -200,6 +201,16 @@ async def check_ticket_channel(interaction: discord.Interaction) -> bool:
             ephemeral=True,
         )
         return False
+
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(MYSTERYBOX_ROLES):
+        roles_text = " / ".join(MYSTERYBOX_ROLES)
+        await interaction.response.send_message(
+            f"❌ Only **{roles_text}** can open Mystery Boxes.",
+            ephemeral=True,
+        )
+        return False
+
     return True
 
 
