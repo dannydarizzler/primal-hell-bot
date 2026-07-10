@@ -19,6 +19,8 @@ COMMANDS_CHANNEL    = "🔎｜commands"
 MYSTERYBOX_ROLES    = ["Admin", "Owner"]   # only these roles can open mystery boxes
 GIVEAWAY_ROLES      = ["Admin", "Owner"]   # only these roles can start giveaways
 GIVEAWAY_CHANNEL    = "🎁｜giveaways"        # giveaways always post here
+POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
+POLLS_CHANNEL       = "📊｜polls"            # polls always post here
 
 # ── Mystery Box Config ─────────────────────────────────────────────────────────
 # Adjust these two to match how your Ticket Tool actually names channels/categories.
@@ -252,20 +254,6 @@ async def commands_command(interaction: discord.Interaction):
     embed.add_field(
         name="💡 Suggestions",
         value="`/suggestion <text>` — Submit a suggestion",
-        inline=False,
-    )
-    embed.add_field(
-        name="📦 Mystery Box",
-        value=(
-            "`/mysterybox1` — Open 1 Mystery Box (inside a Dono-request ticket)\n"
-            "`/mysterybox2` — Open 2 Mystery Boxes\n"
-            "`/mysterybox3` — Open 3 Mystery Boxes"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="🎉 Giveaways",
-        value="`/giveaway-start` — [Admin only] Start a new giveaway in #giveaways (24h/48h/72h/Custom)",
         inline=False,
     )
 
@@ -920,6 +908,69 @@ async def giveaway_start_command(
     await start_giveaway(interaction, prize, seconds, winners)
 
 
+# ── Poll System ─────────────────────────────────────────────────────────────────
+POLL_NUMBER_EMOJIS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
+
+
+# ── /poll ────────────────────────────────────────────────────────────────────────
+@tree.command(name="poll", description="[Admin only] Create a poll in #polls")
+@app_commands.describe(
+    question="The poll question",
+    options="Answer options separated by | (e.g. Ragnarok|Valguero|The Island)",
+)
+async def poll_command(interaction: discord.Interaction, question: str, options: str):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(POLL_ROLES):
+        roles_text = " / ".join(POLL_ROLES)
+        await interaction.response.send_message(
+            f"❌ Only **{roles_text}** can create polls.", ephemeral=True
+        )
+        return
+
+    option_list = [opt.strip() for opt in options.split("|") if opt.strip()]
+
+    if len(option_list) < 2:
+        await interaction.response.send_message(
+            "❌ Please provide at least 2 options, separated by `|` "
+            "(e.g. `Ragnarok|Valguero|The Island`).",
+            ephemeral=True,
+        )
+        return
+
+    if len(option_list) > len(POLL_NUMBER_EMOJIS):
+        await interaction.response.send_message(
+            f"❌ Too many options — max **{len(POLL_NUMBER_EMOJIS)}** allowed.",
+            ephemeral=True,
+        )
+        return
+
+    polls_ch = discord.utils.get(interaction.guild.channels, name=POLLS_CHANNEL)
+    if polls_ch is None:
+        await interaction.response.send_message(
+            f"❌ Could not find the **{POLLS_CHANNEL}** channel.", ephemeral=True
+        )
+        return
+
+    description = "\n\n".join(
+        f"{POLL_NUMBER_EMOJIS[i]}  {opt}" for i, opt in enumerate(option_list)
+    )
+
+    embed = discord.Embed(
+        title=f"📊 {question}",
+        description=description,
+        color=discord.Color.blurple(),
+    )
+    embed.set_footer(text=f"Poll by {interaction.user.display_name} • Primal Hell")
+
+    msg = await polls_ch.send(embed=embed)
+    for i in range(len(option_list)):
+        await msg.add_reaction(POLL_NUMBER_EMOJIS[i])
+
+    await interaction.response.send_message(
+        f"✅ Poll posted in {polls_ch.mention}!", ephemeral=True
+    )
+
+
 # ── Mystery Box Logic ──────────────────────────────────────────────────────────
 def draw_mysterybox(amount: int) -> list[str]:
     """Draws `amount` items independently (duplicates possible) based on weights."""
@@ -996,6 +1047,21 @@ async def on_message(message: discord.Message):
                 embed.set_footer(text="Primal Hell • ARK Survival Ascended")
                 if announce_ch:
                     await announce_ch.send(content="@everyone", embed=embed)
+
+
+# ── Deleting a giveaway message cancels it ─────────────────────────────────────
+@client.event
+async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
+    giveaway = active_giveaways.pop(payload.message_id, None)
+    if giveaway is None:
+        return  # not a tracked giveaway message
+
+    channel = client.get_channel(payload.channel_id)
+    if channel:
+        await channel.send(
+            f"🚫 The **{giveaway['prize']}** giveaway was cancelled (message deleted). "
+            "No winners were drawn."
+        )
 
 
 # ── Start ──────────────────────────────────────────────────────────────────────
