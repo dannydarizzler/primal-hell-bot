@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 import os
+import random
 
 # ── Bot Setup ──────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
@@ -12,6 +13,33 @@ SUGGESTIONS_CHANNEL  = "❓｜suggestions"
 SERVER_CHANGES_CH    = "🔧｜server-changes"
 WIPE_ROLE           = "Admin"          # only members with this role can use /wipe
 COMMANDS_CHANNEL    = "🔎｜commands"
+
+# ── Mystery Box Config ─────────────────────────────────────────────────────────
+# Adjust these two to match how your Ticket Tool actually names channels/categories.
+TICKET_CHANNEL_PREFIX     = "ticket-"          # e.g. channel name starts with "ticket-"
+TICKET_CATEGORY_KEYWORDS  = ["ticket", "dono"] # fallback: category name contains one of these
+
+# (item name, weight in %) — must sum to 100
+MYSTERYBOX_ITEMS = [
+    ("7 Dedi Boxes of choice — 19€",                       2.00),
+    ("500 Kibble Set — 16€",                                2.00),
+    ("Instant Ascension → Level 180 — 15€",                 2.00),
+    ("15 BPs of choice — 13€",                               2.00),
+    ("4 Dedi Boxes of choice — 13€",                        7.67),
+    ("8 Breedpairs — 12€",                                  7.67),
+    ("3x Origin Set (33 Tokens + 33 Blood) — 10€",          7.67),
+    ("200 Kibble Set — 11€",                                7.67),
+    ("10 BPs of choice — 9€",                                7.67),
+    ("4 Breedpairs — 9€",                                    7.67),
+    ("2x Origin Set (22 Tokens + 22 Blood) — 7€",           7.67),
+    ("2 Dedi Boxes of choice — 7€",                          7.67),
+    ("100 Kibble Set — 6€",                                  7.67),
+    ("2 Breedpairs — 5€",                                    7.67),
+    ("5 BPs of choice — 5€",                                 7.67),
+    ("1x Origin Set (11 Tokens + 11 Blood) — 4€",           7.67),
+]
+_MYSTERYBOX_NAMES   = [item[0] for item in MYSTERYBOX_ITEMS]
+_MYSTERYBOX_WEIGHTS = [item[1] for item in MYSTERYBOX_ITEMS]
 
 # ── Loot Drop Data ─────────────────────────────────────────────────────────────
 DROPS = {
@@ -140,7 +168,7 @@ DROPS = {
     },
 }
 
-# ── Channel Lock ───────────────────────────────────────────────────────────────
+# ── Channel Lock (commands channel) ────────────────────────────────────────────
 async def check_channel(interaction: discord.Interaction) -> bool:
     if interaction.channel.name != COMMANDS_CHANNEL:
         correct = discord.utils.get(interaction.guild.channels, name=COMMANDS_CHANNEL)
@@ -151,6 +179,29 @@ async def check_channel(interaction: discord.Interaction) -> bool:
         )
         return False
     return True
+
+
+# ── Channel Lock (ticket channels, for Mystery Box) ────────────────────────────
+def is_ticket_channel(channel: discord.abc.GuildChannel) -> bool:
+    name = channel.name.lower()
+    if name.startswith(TICKET_CHANNEL_PREFIX):
+        return True
+    category = getattr(channel, "category", None)
+    if category and any(kw in category.name.lower() for kw in TICKET_CATEGORY_KEYWORDS):
+        return True
+    return False
+
+
+async def check_ticket_channel(interaction: discord.Interaction) -> bool:
+    if not is_ticket_channel(interaction.channel):
+        await interaction.response.send_message(
+            "❌ This command only works inside a **Dono-request** ticket. "
+            "Open a ticket first to use Mystery Boxes.",
+            ephemeral=True,
+        )
+        return False
+    return True
+
 
 # ── /commands ──────────────────────────────────────────────────────────────────
 @tree.command(name="commands", description="Shows all available bot commands")
@@ -185,6 +236,15 @@ async def commands_command(interaction: discord.Interaction):
     embed.add_field(
         name="💡 Suggestions",
         value="`/suggestion <text>` — Submit a suggestion",
+        inline=False,
+    )
+    embed.add_field(
+        name="📦 Mystery Box",
+        value=(
+            "`/mysterybox1` — Open 1 Mystery Box (inside a Dono-request ticket)\n"
+            "`/mysterybox2` — Open 2 Mystery Boxes\n"
+            "`/mysterybox3` — Open 3 Mystery Boxes"
+        ),
         inline=False,
     )
 
@@ -414,8 +474,6 @@ async def mods_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
 
-
-
 # ── /armor-guide ───────────────────────────────────────────────────────────────
 @tree.command(name="armor-guide", description="Armor tier overview with perks")
 async def armor_command(interaction: discord.Interaction):
@@ -545,7 +603,6 @@ async def wipe_command(interaction: discord.Interaction):
     )
 
 
-
 # ── Active Giveaway State ─────────────────────────────────────────────────────
 active_giveaway = {}   # guild_id → {"number": int, "channel_id": int}
 
@@ -570,7 +627,6 @@ async def event_100_command(interaction: discord.Interaction):
         )
         return
 
-    import random
     number = random.randint(1, 100)
     global_ch = discord.utils.get(interaction.guild.channels, name="🌍｜chat")
     if global_ch is None:
@@ -603,6 +659,45 @@ async def event_100_command(interaction: discord.Interaction):
         f"✅ Giveaway started in {events_ch.mention}. Secret number: **{number}**",
         ephemeral=True,
     )
+
+
+# ── Mystery Box Logic ──────────────────────────────────────────────────────────
+def draw_mysterybox(amount: int) -> list[str]:
+    """Draws `amount` items independently (duplicates possible) based on weights."""
+    return random.choices(_MYSTERYBOX_NAMES, weights=_MYSTERYBOX_WEIGHTS, k=amount)
+
+
+async def send_mysterybox_result(interaction: discord.Interaction, amount: int):
+    if not await check_ticket_channel(interaction):
+        return
+
+    results = draw_mysterybox(amount)
+
+    embed = discord.Embed(
+        title=f"📦 Mystery Box{'es' if amount > 1 else ''} Opened!",
+        description="\n".join(f"🎁 **{item}**" for item in results),
+        color=discord.Color.orange(),
+    )
+    embed.set_footer(text="Primal Hell • A staff member will fulfill this shortly")
+
+    await interaction.response.send_message(embed=embed)
+
+
+# ── /mysterybox1, /mysterybox2, /mysterybox3 ──────────────────────────────────
+@tree.command(name="mysterybox1", description="Open 1 Mystery Box (Dono-request tickets only)")
+async def mysterybox1_command(interaction: discord.Interaction):
+    await send_mysterybox_result(interaction, 1)
+
+
+@tree.command(name="mysterybox2", description="Open 2 Mystery Boxes (Dono-request tickets only)")
+async def mysterybox2_command(interaction: discord.Interaction):
+    await send_mysterybox_result(interaction, 2)
+
+
+@tree.command(name="mysterybox3", description="Open 3 Mystery Boxes (Dono-request tickets only)")
+async def mysterybox3_command(interaction: discord.Interaction):
+    await send_mysterybox_result(interaction, 3)
+
 
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
 @client.event
@@ -640,6 +735,7 @@ async def on_message(message: discord.Message):
                 embed.set_footer(text="Primal Hell • ARK Survival Ascended")
                 if announce_ch:
                     await announce_ch.send(content="@everyone", embed=embed)
+
 
 # ── Start ──────────────────────────────────────────────────────────────────────
 @client.event
