@@ -5,6 +5,8 @@ import random
 import re
 import time
 import asyncio
+import sqlite3
+import json
 
 # ── Bot Setup ──────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
@@ -705,6 +707,87 @@ async def event_1000_20_command(interaction: discord.Interaction):
 # ── Giveaway System ─────────────────────────────────────────────────────────────
 active_giveaways = {}  # message_id → {prize, host_id, winners_count, entries, end_time, channel_id}
 
+# ── SQLite persistence (mount a Railway Volume at DB_PATH's directory) ─────────
+DB_PATH = os.environ.get("DB_PATH", "/data/giveaways.db")
+
+
+def init_db():
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS giveaways (
+            message_id INTEGER PRIMARY KEY,
+            channel_id INTEGER NOT NULL,
+            prize TEXT NOT NULL,
+            host_id INTEGER NOT NULL,
+            winners_count INTEGER NOT NULL,
+            entries TEXT NOT NULL,
+            end_time REAL NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def db_save_giveaway(message_id: int, giveaway: dict):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        "INSERT OR REPLACE INTO giveaways "
+        "(message_id, channel_id, prize, host_id, winners_count, entries, end_time) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (
+            message_id,
+            giveaway["channel_id"],
+            giveaway["prize"],
+            giveaway["host_id"],
+            giveaway["winners_count"],
+            json.dumps(list(giveaway["entries"])),
+            giveaway["end_time"],
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
+def db_update_entries(message_id: int, entries: set):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        "UPDATE giveaways SET entries = ? WHERE message_id = ?",
+        (json.dumps(list(entries)), message_id),
+    )
+    conn.commit()
+    conn.close()
+
+
+def db_delete_giveaway(message_id: int):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("DELETE FROM giveaways WHERE message_id = ?", (message_id,))
+    conn.commit()
+    conn.close()
+
+
+def db_load_all_giveaways() -> dict:
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute(
+        "SELECT message_id, channel_id, prize, host_id, winners_count, entries, end_time FROM giveaways"
+    ).fetchall()
+    conn.close()
+
+    loaded = {}
+    for message_id, channel_id, prize, host_id, winners_count, entries_json, end_time in rows:
+        loaded[message_id] = {
+            "prize": prize,
+            "host_id": host_id,
+            "winners_count": winners_count,
+            "entries": set(json.loads(entries_json)),
+            "end_time": end_time,
+            "channel_id": channel_id,
+        }
+    return loaded
+
+
+init_db()
+
 _DURATION_PATTERN = re.compile(r'(\d+)\s*(d|h|m|s)', re.IGNORECASE)
 
 
@@ -750,15 +833,19 @@ def build_giveaway_embed(giveaway: dict, ended: bool = False) -> discord.Embed:
 
 
 class GiveawayView(discord.ui.View):
-    def __init__(self, message_id: int):
+    def __init__(self):
         super().__init__(timeout=None)
-        self.message_id = message_id
 
     @discord.ui.button(label="🎉 Join Giveaway", style=discord.ButtonStyle.blurple, custom_id="giveaway_join")
     async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
-        giveaway = active_giveaways.get(self.message_id)
+        message_id = interaction.message.id
+        giveaway = active_giveaways.get(message_id)
         if giveaway is None:
-            await interaction.response.send_message("❌ This giveaway has already ended.", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ This giveaway has already ended (or the bot restarted and lost track of it — "
+                "sorry about that, ask an admin to start a new one).",
+                ephemeral=True,
+            )
             return
 
         if interaction.user.id in giveaway["entries"]:
@@ -766,6 +853,7 @@ class GiveawayView(discord.ui.View):
             return
 
         giveaway["entries"].add(interaction.user.id)
+        db_update_entries(message_id, giveaway["entries"])
         await interaction.response.send_message("🎉 You've entered the giveaway! Good luck!", ephemeral=True)
 
         embed = build_giveaway_embed(giveaway)
@@ -795,10 +883,10 @@ async def start_giveaway(interaction: discord.Interaction, prize: str, seconds: 
     }
 
     embed = build_giveaway_embed(giveaway)
-    view = GiveawayView(message_id=0)  # message_id patched right after sending
+    view = GiveawayView()
     msg = await channel.send(embed=embed, view=view)
-    view.message_id = msg.id
     active_giveaways[msg.id] = giveaway
+    db_save_giveaway(msg.id, giveaway)
 
     await interaction.response.send_message(
         f"✅ Giveaway started in {channel.mention}! Ends in {format_duration(seconds)}.",
@@ -817,6 +905,7 @@ async def finish_giveaway(message_id: int):
     giveaway = active_giveaways.pop(message_id, None)
     if giveaway is None:
         return  # already ended or bot restarted in the meantime
+    db_delete_giveaway(message_id)
 
     channel = client.get_channel(giveaway["channel_id"])
     if channel is None:
@@ -1058,6 +1147,8 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     if giveaway is None:
         return  # not a tracked giveaway message
 
+    db_delete_giveaway(payload.message_id)
+
     channel = client.get_channel(payload.channel_id)
     if channel:
         await channel.send(
@@ -1069,7 +1160,20 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 # ── Start ──────────────────────────────────────────────────────────────────────
 @client.event
 async def on_ready():
+    client.add_view(GiveawayView())
     await tree.sync()
-    print(f"✅ Bot online as {client.user}")
+
+    # Reload giveaways that survived a restart and reschedule their timers
+    loaded = db_load_all_giveaways()
+    active_giveaways.update(loaded)
+    now = time.time()
+    for message_id, giveaway in loaded.items():
+        remaining = giveaway["end_time"] - now
+        if remaining <= 0:
+            asyncio.create_task(finish_giveaway(message_id))
+        else:
+            asyncio.create_task(end_giveaway_after(message_id, remaining))
+
+    print(f"✅ Bot online as {client.user} — {len(loaded)} giveaway(s) restored from DB")
 
 client.run(os.environ["DISCORD_TOKEN"])
