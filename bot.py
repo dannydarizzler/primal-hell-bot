@@ -38,7 +38,7 @@ MYSTERYBOX_ITEMS = [
     ("4 Dedi Boxes of choice — 13€",                        7.67),
     ("8 Breedpairs — 12€",                                  7.67),
     ("3x Origin Set (33 Tokens + 33 Blood) — 10€",          7.67),
-    ("200 Kibble Set — 11€",                                7.67),
+    ("250 Kibble Set — 11€",                                7.67),
     ("10 BPs of choice — 9€",                                7.67),
     ("4 Breedpairs — 9€",                                    7.67),
     ("2x Origin Set (22 Tokens + 22 Blood) — 7€",           7.67),
@@ -1064,8 +1064,22 @@ async def poll_command(interaction: discord.Interaction, question: str, options:
 
 # ── Mystery Box Logic ──────────────────────────────────────────────────────────
 def draw_mysterybox(amount: int) -> list[str]:
-    """Draws `amount` items independently (duplicates possible) based on weights."""
-    return random.choices(_MYSTERYBOX_NAMES, weights=_MYSTERYBOX_WEIGHTS, k=amount)
+    """Draws `amount` DISTINCT items (no duplicates) based on weights.
+    Each pick is weighted, but the picked item is removed from the pool
+    before the next pick, so mysterybox2/3 always yield different items."""
+    amount = min(amount, len(_MYSTERYBOX_NAMES))
+    remaining_names = list(_MYSTERYBOX_NAMES)
+    remaining_weights = list(_MYSTERYBOX_WEIGHTS)
+
+    results = []
+    for _ in range(amount):
+        picked = random.choices(remaining_names, weights=remaining_weights, k=1)[0]
+        idx = remaining_names.index(picked)
+        results.append(picked)
+        del remaining_names[idx]
+        del remaining_weights[idx]
+
+    return results
 
 
 async def send_mysterybox_result(interaction: discord.Interaction, amount: int):
