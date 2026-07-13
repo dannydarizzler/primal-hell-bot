@@ -58,8 +58,8 @@ DROPS = {
         "normal": (
             "• Toxic Hide Armor (5 pieces)\n"
             "• 10x Bola\n"
-            "• Metal Pick\n"
-            "• Metal Hatchet\n"
+            "• Toxic Pick\n"
+            "• Toxic Hatchet\n"
             "• 10x Med Brew"
         ),
         "double": (
@@ -95,7 +95,7 @@ DROPS = {
             "• 2–5x Medium XP Potion\n\n"
             "**Gear Pool (1–5 items, no Blueprints):**\n"
             "• Crossbow · Alpha Flak Set (5 pieces)\n"
-            "• Alpha Pick · Hatchet · Sickle · Pike"
+            "• Alpha Pick · Hatchet · Sickle · Pike · Chainsaw"
         ),
         "double": (
             "**Guaranteed:**\n"
@@ -104,7 +104,7 @@ DROPS = {
             "• 2–5x Medium XP Potion\n\n"
             "**Gear Pool (3–7 items, 20% Blueprint chance each):**\n"
             "• Crossbow · Alpha Flak Set (5 pieces)\n"
-            "• Alpha Pick · Hatchet · Sickle · Pike"
+            "• Alpha Pick · Hatchet · Sickle · Pike · Chainsaw"
         ),
         "quality": "—",
     },
@@ -136,7 +136,7 @@ DROPS = {
             "• 1–5x Mythic Health Potion\n\n"
             "**Gear Pool (1–5 items, no Blueprints):**\n"
             "• Longneck · Volcanic Flak Set (5 pieces)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike · Fab Sniper (Mastercraft)"
+            "• Volcanic Pick · Hatchet · Sickle · Pike · Fab Sniper (Mastercraft) · Chainsaw *(always Blueprint)*"
         ),
         "double": (
             "**Guaranteed:**\n"
@@ -146,7 +146,7 @@ DROPS = {
             "• 1–5x Mythic Health Potion\n\n"
             "**Gear Pool (1–5 items, 20% Blueprint chance each):**\n"
             "• Longneck · Volcanic Flak Set (5 pieces)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike · Fab Sniper (Mastercraft)"
+            "• Volcanic Pick · Hatchet · Sickle · Pike · Fab Sniper (Mastercraft) · Chainsaw *(always Blueprint)*"
         ),
         "quality": "—",
     },
@@ -160,7 +160,8 @@ DROPS = {
             "• 8–25x Primal Compound Bow Arrows\n\n"
             "**Gear Pool (1–5 items, no Blueprints):**\n"
             "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
-            "• Legend Riot Set (5 pieces)"
+            "• Legend Riot Set (5 pieces)\n"
+            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw *(always Blueprint)*"
         ),
         "double": (
             "**Guaranteed:**\n"
@@ -172,6 +173,7 @@ DROPS = {
             "**Gear Pool (1–5 items, 20% Blueprint chance each):**\n"
             "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
             "• Legend Riot Set (5 pieces)\n"
+            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw *(always Blueprint)*\n"
             "• Compound Bow Blueprint (always Blueprint)"
         ),
         "quality": "—",
@@ -721,9 +723,20 @@ async def kibble_guide_command(interaction: discord.Interaction):
     embed.add_field(
         name="🥚 Getting Unfertilized Eggs Efficiently",
         value=(
+            "• Set `layegginterval` to **0.3** in Game.ini for steady egg production\n"
             "• Keep at least 1 male + multiple females of the tier, **mate-boosted**\n"
             "• **Disable mating** — this makes dinos lay unfertilized eggs instead\n"
             "• Tame an **Oviraptor** for an extra egg-laying speed boost"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="📝 Note",
+        value=(
+            "Steps 1–4 and 6 are directly confirmed by the community progression guide. "
+            "Step 5 (Demonic & Angelic) follows the same egg-based pattern as earlier tiers "
+            "but hasn't been explicitly verified — if you test this in-game, let an admin know "
+            "so this guide can be updated."
         ),
         inline=False,
     )
