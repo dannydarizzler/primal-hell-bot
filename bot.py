@@ -73,16 +73,16 @@ DROPS = {
     "green": {
         "label": "🟢 Green — Resources",
         "normal": (
-            "• 75–175x Polymer\n"
-            "• 75–175x Cementing Paste\n"
-            "• 75–175x Silica Pearls\n"
-            "• 75–175x Oil"
+            "• 50–125x Polymer\n"
+            "• 50–125x Cementing Paste\n"
+            "• 50–125x Silica Pearls\n"
+            "• 50–125x Oil"
         ),
         "double": (
-            "• 125–250x Polymer\n"
-            "• 125–250x Cementing Paste\n"
-            "• 125–250x Silica Pearls\n"
-            "• 125–250x Oil"
+            "• 75–200x Polymer\n"
+            "• 75–200x Cementing Paste\n"
+            "• 75–200x Silica Pearls\n"
+            "• 75–200x Oil"
         ),
         "quality": "—",
     },
