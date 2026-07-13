@@ -721,20 +721,9 @@ async def kibble_guide_command(interaction: discord.Interaction):
     embed.add_field(
         name="🥚 Getting Unfertilized Eggs Efficiently",
         value=(
-            "• Set `layegginterval` to **0.3** in Game.ini for steady egg production\n"
             "• Keep at least 1 male + multiple females of the tier, **mate-boosted**\n"
             "• **Disable mating** — this makes dinos lay unfertilized eggs instead\n"
             "• Tame an **Oviraptor** for an extra egg-laying speed boost"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="📝 Note",
-        value=(
-            "Steps 1–4 and 6 are directly confirmed by the community progression guide. "
-            "Step 5 (Demonic & Angelic) follows the same egg-based pattern as earlier tiers "
-            "but hasn't been explicitly verified — if you test this in-game, let an admin know "
-            "so this guide can be updated."
         ),
         inline=False,
     )
