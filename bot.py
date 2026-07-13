@@ -252,12 +252,12 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="🥚 Kibble",
-        value="`/kibble-guide` — Which unfertilized eggs unlock which kibble tier",
+        value="`/kibble-guide` — Which eggs unlock which kibble tier",
         inline=False,
     )
     embed.add_field(
         name="🐉 Bosses",
-        value="`/boss-fight` — Boss fights per map & how Element rewards work",
+        value="`/boss-fight` — Boss fights modded loot",
         inline=False,
     )
     embed.add_field(
@@ -778,34 +778,10 @@ async def boss_fight_command(interaction: discord.Interaction):
     )
 
     embed.add_field(
-        name="🗺️ Valguero — Grendel",
-        value=(
-            "**Element Reward per Difficulty:**\n"
-            "• Gamma → **250** Element\n"
-            "• Beta → **500** Element\n"
-            "• Alpha → **1,000** Element"
-        ),
-        inline=True,
-    )
-
-    embed.add_field(
-        name="⚙️ How Boss Loot Is Modded",
-        value=(
-            "• Boss fights don't drop supply crates — the reward is a **fixed Element amount** "
-            "based on the difficulty you summon (Gamma/Beta/Alpha)\n"
-            "• Element is the crafting currency for Tek-tier structures, engrams, and "
-            "some Primal Chaos endgame recipes\n"
-            "• Higher difficulty = tougher fight, but the Element reward scales directly with it\n"
-            "• Because CrossARK is enabled, Element earned on either map can be used cluster-wide"
-        ),
-        inline=False,
-    )
-
-    embed.add_field(
         name="📝 Note",
         value=(
-            "Both maps currently share the same reward structure (250 / 500 / 1,000 Element). "
-            "If either boss gets rebalanced in a future Primal Chaos patch, this guide will be updated."
+            "Boss follows currently this order (250 / 500 / 1,000 Element). "
+            "If boss loot gets rebalanced in a future patch, this guide will be updated."
         ),
         inline=False,
     )
