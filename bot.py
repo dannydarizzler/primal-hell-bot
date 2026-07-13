@@ -322,18 +322,20 @@ async def taming_guide_command(interaction: discord.Interaction):
         title="🎯 Taming Guide — Primal Chaos",
         description=(
             "Primal Chaos adds tiered tranq ammo — the higher the tier, the more torpor per hit. "
-            "Combined with a higher % Fab Sniper blueprint, the effect multiplies significantly.\n\u200b"
+            "Combined with a higher % Fab Sniper blueprint, the effect multiplies significantly.\n"
+            "⚠️ *Reference values below are approximate (measured on Level 150, unboosted creatures) "
+            "and can vary depending on the target dino and server stat multipliers.*\n\u200b"
         ),
     )
 
     embed.add_field(
         name="🔫 Fab Sniper — ADV Sniper Bullets @ 100% weapon",
         value=(
-            "• Potent → **2.1k** torpor\n"
-            "• Alpha → **4.6k** torpor\n"
-            "• Elemental → **8.6k** torpor\n"
+            "• Potent → **2k** torpor\n"
+            "• Alpha → **4.5k** torpor\n"
+            "• Elemental → **8.5k** torpor\n"
             "• Mythic → **13k** torpor\n"
-            "• Primal → **20.8k** torpor"
+            "• Primal → **20k** torpor *(boss drop only)*"
         ),
         inline=True,
     )
@@ -341,10 +343,10 @@ async def taming_guide_command(interaction: discord.Interaction):
     embed.add_field(
         name="🎯 Longneck — Tranq Darts @ 100% weapon",
         value=(
-            "• Potent → **1.9k** torpor\n"
-            "• Alpha → **3.8k** torpor\n"
-            "• Elemental → **7.4k** torpor\n"
-            "• Mythic → **11.3k** torpor"
+            "• Potent → **0.9–1.9k** torpor\n"
+            "• Alpha → **1.7–3.8k** torpor\n"
+            "• Elemental → **2.6–6.4k** torpor\n"
+            "• Mythic → **5.5–9.2k** torpor"
         ),
         inline=True,
     )
@@ -354,6 +356,18 @@ async def taming_guide_command(interaction: discord.Interaction):
         value=(
             "• Potent → **640** torpor\n"
             "• Alpha → **1.2k** torpor"
+        ),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🏹 Compound Bow — Compound Tranq Arrows @ 100% weapon",
+        value=(
+            "• Potent → **3k** torpor\n"
+            "• Alpha → **6k** torpor\n"
+            "• Elemental → **12k** torpor\n"
+            "• Mythic → **17k** torpor\n"
+            "• Primal → **30k** torpor *(boss drop only)*"
         ),
         inline=True,
     )
@@ -378,7 +392,8 @@ async def taming_guide_command(interaction: discord.Interaction):
             "• Use the **Awesome Spyglass** to monitor torpor & max torpor in real time\n"
             "• Higher tier ammo isn't always needed — Potent/Alpha works fine on weaker dinos\n"
             "• Mythic/Primal Bullets recommended for high-level Chaos dinos or boss tames\n"
-            "• **Boss dinos** must be brought below 20% HP before they take any torpor"
+            "• **Boss dinos** must be brought below 20% HP before they take any torpor\n"
+            "• The **Compound Bow** hits noticeably harder per torpor tier than the Crossbow — worth upgrading to once available"
         ),
         inline=False,
     )
@@ -461,6 +476,18 @@ async def mods_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
+        name="⛏️ Tool Harvesting Multipliers (Primal Chaos)",
+        value=(
+            "The in-game item descriptions for these tools are inaccurate — actual multipliers:\n"
+            "• Toxic Tools → **×1.5** harvesting\n"
+            "• Alpha Tools → **×2** harvesting\n"
+            "• Elemental Tools (Volcanic) → **×2.5** harvesting\n"
+            "• Mythic Tools → **×3** harvesting\n"
+            "*(Applies to Pick, Hatchet, Sickle, and Pike of each tier.)*"
+        ),
+        inline=False,
+    )
+    embed.add_field(
         name="🖥️ Performance Mod — Applied Commands (PC)",
         value=(
             "`r.VolumetricCloud 0` — Disables clouds\n"
@@ -494,13 +521,14 @@ async def armor_command(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🛡️ Primal Chaos Armor Guide",
         description=(
-            "Armor progresses through 5 tiers. Higher tiers offer better protection "
+            "Armor progresses through 7 tiers. Higher tiers offer better protection "
             "and unique passive perks on certain pieces. All Primal Chaos flak armors "
-            "drop exclusively as Blueprints.\n\u200b"
+            "drop exclusively as Blueprints.\n"
+            "*(Armor values below are per full 5-piece set — divide by 5 for the value of a single piece.)*\n\u200b"
         ),
     )
     embed.add_field(
-        name="1️⃣ Hide Toxic — Starter",
+        name="1️⃣ Hide Toxic — Starter (Lvl 3, 400 armor/set)",
         value=(
             "Basic protection for early game survival.\n"
             "Available from the ⚪ **White drop**."
@@ -508,7 +536,15 @@ async def armor_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="2️⃣ Alpha Flak — Alpha Tier",
+        name="2️⃣ Alpha Chitin — Early Alpha (Lvl 37, 1250 armor/set)",
+        value=(
+            "Bridges the gap between Toxic Hide and Alpha Flak.\n"
+            "*Not currently obtainable from any Primal Hell drop — will be added once confirmed available.*"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="3️⃣ Alpha Flak — Alpha Tier (Lvl 56, 2500 armor/set)",
         value=(
             "Solid mid-game armor, upgrade from Toxic Hide.\n"
             "Available from the 🔵 **Blue drop** (Blueprint, Double only)."
@@ -516,7 +552,7 @@ async def armor_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="3️⃣ Volcanic Flak — Volcanic Tier",
+        name="4️⃣ Volcanic Flak — Volcanic Tier (Lvl 56, 5000 armor/set)",
         value=(
             "Strong late-game armor with improved stats.\n"
             "Available from the 🟡 **Yellow drop** (Blueprint, Double only)."
@@ -524,7 +560,7 @@ async def armor_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="4️⃣ Mythic Flak — Mythic Tier ⭐ (2500 armor)",
+        name="5️⃣ Mythic Flak — Mythic Tier ⭐ (Lvl 56, 12500 armor/set)",
         value=(
             "High-end armor with piece-specific passive perks.\n"
             "Available from the 🔴 **Red drop** (Blueprint, Double only).\n\n"
@@ -537,26 +573,43 @@ async def armor_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="5️⃣ Legend Riot — Legend Tier ⭐⭐ (3000 armor)",
+        name="6️⃣ Legend Riot — Legend Tier ⭐⭐ (Lvl 98, 15000 armor/set)",
         value=(
-            "Top-tier armor with the strongest passive perks.\n"
+            "Top-tier craftable armor with the strongest passive perks.\n"
             "Available from the 🔴 **Red drop** (Blueprint, Double only).\n\n"
             "🪖 Helmet → **×4 Health**\n"
             "👕 Chestpiece → **×4 Torpor Resistance**\n"
             "🧤 Gauntlets → **×4 Melee Damage**\n"
             "👖 Leggings → **×4 Stamina**\n"
-            "👢 Boots → **+25% Movement Speed**"
+            "👢 Boots → **+25% Movement Speed & Reduced Fall Damage**"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="7️⃣ DeathKnight — Endgame Boss Armor ⭐⭐⭐ (20000 armor/set)",
+        value=(
+            "The strongest armor in Primal Chaos — unbreakable, with the same perk spread "
+            "as Legend Riot but at a higher tier.\n"
+            "Drops exclusively from defeating the **Deathknight** boss (not obtainable from supply drops).\n\n"
+            "🪖 Helmet → **Torpor Resistance**\n"
+            "👕 Chestpiece → **Damage Increase**\n"
+            "🧤 Gauntlets → **Health / Recovery**\n"
+            "👖 Leggings → **Stamina**\n"
+            "👢 Boots → **Reduced Fall Damage & Increased Movement Speed**"
         ),
         inline=False,
     )
     embed.add_field(name="​", value="​", inline=False)
     embed.add_field(
-        name="📊 Base Stats — Armor Values (per piece)",
+        name="📊 Base Stats — Armor Values (per full set / per piece)",
         value=(
-            "• Alpha Flak → **500** armor\n"
-            "• Volcanic Flak → **1000** armor\n"
-            "• Mythic Flak → **2500** armor\n"
-            "• Legend Riot → **3000** armor"
+            "• Toxic Hide → 400 *(80/piece)*\n"
+            "• Alpha Chitin → 1250 *(250/piece)*\n"
+            "• Alpha Flak → 2500 *(500/piece)*\n"
+            "• Volcanic Flak → 5000 *(1000/piece)*\n"
+            "• Mythic Flak → 12500 *(2500/piece)*\n"
+            "• Legend Riot → 15000 *(3000/piece)*\n"
+            "• DeathKnight → 20000 *(4000/piece)*"
         ),
         inline=True,
     )
