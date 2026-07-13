@@ -249,6 +249,11 @@ async def commands_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
+        name="🥚 Kibble",
+        value="`/kibble-guide` — Which unfertilized eggs unlock which kibble tier",
+        inline=False,
+    )
+    embed.add_field(
         name="📊 Server Info",
         value="`/mods` — List of all active mods with descriptions",
         inline=False,
@@ -363,11 +368,9 @@ async def taming_guide_command(interaction: discord.Interaction):
     embed.add_field(
         name="🏹 Compound Bow — Compound Tranq Arrows @ 100% weapon",
         value=(
-            "• Potent → **3k** torpor\n"
-            "• Alpha → **6k** torpor\n"
-            "• Elemental → **12k** torpor\n"
-            "• Mythic → **17k** torpor\n"
-            "• Primal → **30k** torpor *(boss drop only)*"
+            "• Primal → **30k** torpor *(boss drop only)*\n\n"
+            "*Only the Primal tier still exists in-game — Potent/Alpha/Elemental/Mythic "
+            "Compound Tranq Arrows have been removed from the mod.*"
         ),
         inline=True,
     )
@@ -623,6 +626,119 @@ async def armor_command(interaction: discord.Interaction):
         ),
         inline=True,
     )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed)
+
+
+# ── /kibble-guide ──────────────────────────────────────────────────────────────
+@tree.command(name="kibble-guide", description="Kibble progression tree — which egg unlocks which kibble")
+async def kibble_guide_command(interaction: discord.Interaction):
+    if not await check_channel(interaction):
+        return
+
+    embed = discord.Embed(
+        title="🥚 Kibble Progression Guide — Primal Chaos",
+        description=(
+            "Each kibble tier is crafted from **unfertilized eggs** of the previous tier "
+            "(combined with standard resources) in the **Primal Cauldron**. "
+            "Use the tier below to know which eggs to stockpile next.\n\u200b"
+        ),
+    )
+
+    embed.add_field(
+        name="1️⃣ Alpha Kibble",
+        value=(
+            "**Needs:** Unfertilized **Toxic** Eggs\n"
+            "**Unlocks taming:** Alpha-tier creatures"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="2️⃣ Elemental Kibble",
+        value=(
+            "**Needs:** Unfertilized **Alpha** Eggs\n"
+            "**Unlocks taming:** Hydro · Volcanic · Electric creatures"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="3️⃣ Shadow & Fairy Kibble",
+        value=(
+            "**Needs:** **Elemental Fruits** (grown from Elemental Seeds, dropped by the "
+            "Hydro/Volcanic/Electric bosses)\n"
+            "**Unlocks taming:** Shadow · Fairy creatures"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="4️⃣ Mythic, Fabled & Legendary Kibble",
+        value=(
+            "**Needs:** Unfertilized **Shadow / Fairy** Eggs\n"
+            "**Unlocks taming:** Mythic (gatherers) · Fabled (haulers) · Legendary (combat)"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="5️⃣ Demonic & Angelic Kibble",
+        value=(
+            "**Needs:** Unfertilized **Mythic / Fabled / Legendary** Eggs *(pattern-based, "
+            "not officially confirmed — verify in-game before relying on it)*\n"
+            "**Unlocks taming:** Demonic · Angelic creatures"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="6️⃣ Spirit & Chaos Kibble",
+        value=(
+            "**Needs:** Defeat the **Spirit Titan** and **Chaos Titan** bosses "
+            "(summoned at the Primal Smithy) — this unlocks the kibble engram itself, "
+            "not just an egg tier\n"
+            "**Unlocks taming:** Spirit · Chaos creatures — these kibbles are also required "
+            "as a crafting ingredient for Origin → Nightmare Evolution"
+        ),
+        inline=False,
+    )
+    embed.add_field(name="​", value="​", inline=False)
+    embed.add_field(
+        name="🐣 Essential: Keep a Breeding Pair of Every Tier",
+        value=(
+            "To reach the endgame in this mod, it's essential to keep at least **one breeding "
+            "pair alive from every single tier** — from Toxic all the way up to Legendary/Fabled/Mythic. "
+            "You'll constantly need unfertilized eggs from earlier tiers to craft the next kibble tier, "
+            "so don't cull or release your old breeders once you've moved on — you'll need their eggs again."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="📚 Which Dinos Lay Eggs?",
+        value=(
+            "Check the **#primal-chaos-creature-list-by-tier** channel — it lists every creature "
+            "by tier and marks which ones are egg-layers, so you know exactly what to breed for "
+            "each kibble stage."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🥚 Getting Unfertilized Eggs Efficiently",
+        value=(
+            "• Set `layegginterval` to **0.3** in Game.ini for steady egg production\n"
+            "• Keep at least 1 male + multiple females of the tier, **mate-boosted**\n"
+            "• **Disable mating** — this makes dinos lay unfertilized eggs instead\n"
+            "• Tame an **Oviraptor** for an extra egg-laying speed boost"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="📝 Note",
+        value=(
+            "Steps 1–4 and 6 are directly confirmed by the community progression guide. "
+            "Step 5 (Demonic & Angelic) follows the same egg-based pattern as earlier tiers "
+            "but hasn't been explicitly verified — if you test this in-game, let an admin know "
+            "so this guide can be updated."
+        ),
+        inline=False,
+    )
+
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed)
 
