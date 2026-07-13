@@ -256,6 +256,11 @@ async def commands_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
+        name="🐉 Bosses",
+        value="`/boss-fight` — Boss fights per map & how Element rewards work",
+        inline=False,
+    )
+    embed.add_field(
         name="📊 Server Info",
         value="`/mods` — List of all active mods with descriptions",
         inline=False,
@@ -737,6 +742,70 @@ async def kibble_guide_command(interaction: discord.Interaction):
             "Step 5 (Demonic & Angelic) follows the same egg-based pattern as earlier tiers "
             "but hasn't been explicitly verified — if you test this in-game, let an admin know "
             "so this guide can be updated."
+        ),
+        inline=False,
+    )
+
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed)
+
+
+# ── /boss-fight ────────────────────────────────────────────────────────────────
+@tree.command(name="boss-fight", description="Boss fights per map & how the loot/Element rewards work")
+async def boss_fight_command(interaction: discord.Interaction):
+    if not await check_channel(interaction):
+        return
+
+    embed = discord.Embed(
+        title="🐉 Boss Fights — Primal Hell",
+        description=(
+            "Thanks to the **Tribute Table** mod, boss fights can be crafted and summoned "
+            "directly — no artifact hunting or tribute farming required. Simply craft the "
+            "matching tribute item at the Tribute Table and summon the boss on the "
+            "corresponding map.\n\u200b"
+        ),
+    )
+
+    embed.add_field(
+        name="🗺️ Ragnarok — Nunatak (Ice Wyvern)",
+        value=(
+            "**Element Reward per Difficulty:**\n"
+            "• Gamma → **250** Element\n"
+            "• Beta → **500** Element\n"
+            "• Alpha → **1,000** Element"
+        ),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🗺️ Valguero — Grendel",
+        value=(
+            "**Element Reward per Difficulty:**\n"
+            "• Gamma → **250** Element\n"
+            "• Beta → **500** Element\n"
+            "• Alpha → **1,000** Element"
+        ),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="⚙️ How Boss Loot Is Modded",
+        value=(
+            "• Boss fights don't drop supply crates — the reward is a **fixed Element amount** "
+            "based on the difficulty you summon (Gamma/Beta/Alpha)\n"
+            "• Element is the crafting currency for Tek-tier structures, engrams, and "
+            "some Primal Chaos endgame recipes\n"
+            "• Higher difficulty = tougher fight, but the Element reward scales directly with it\n"
+            "• Because CrossARK is enabled, Element earned on either map can be used cluster-wide"
+        ),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="📝 Note",
+        value=(
+            "Both maps currently share the same reward structure (250 / 500 / 1,000 Element). "
+            "If either boss gets rebalanced in a future Primal Chaos patch, this guide will be updated."
         ),
         inline=False,
     )
