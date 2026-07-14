@@ -136,17 +136,18 @@ DROPS = {
             "• 1–5x Mythic Health Potion\n\n"
             "**Gear Pool (1–5 items, no Blueprints):**\n"
             "• Longneck · Volcanic Flak Set (5 pieces)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike · Fab Sniper (Mastercraft) · Chainsaw *(always Blueprint)*"
+            "• Volcanic Pick · Hatchet · Sickle · Pike · Chainsaw"
         ),
         "double": (
             "**Guaranteed:**\n"
-            "• 10–20x Tranq Dart (random: Elemental/Alpha/Potent)\n"
+            "• 15–35x Tranq Dart (random: Elemental/Alpha/Potent)\n"
             "• 8–24x Elemental ADV Sniper Bullets\n"
             "• 2–5x Large XP Potion\n"
             "• 1–5x Mythic Health Potion\n\n"
             "**Gear Pool (1–5 items, 20% Blueprint chance each):**\n"
             "• Longneck · Volcanic Flak Set (5 pieces)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike · Fab Sniper (Mastercraft) · Chainsaw *(always Blueprint)*"
+            "• Volcanic Pick · Hatchet · Sickle · Pike · Chainsaw\n"
+            "• Fab Sniper (Mastercraft) *(Double crates only)*"
         ),
         "quality": "—",
     },
@@ -161,7 +162,7 @@ DROPS = {
             "**Gear Pool (1–5 items, no Blueprints):**\n"
             "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
             "• Legend Riot Set (5 pieces)\n"
-            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw *(always Blueprint)*"
+            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw"
         ),
         "double": (
             "**Guaranteed:**\n"
@@ -170,11 +171,11 @@ DROPS = {
             "• 1–2x Nightmare Health Potion\n"
             "• 8–25x Primal Compound Bow Arrows\n"
             "• Additional guaranteed Primal ADV Sniper Bullets\n\n"
-            "**Gear Pool (1–5 items, 20% Blueprint chance each):**\n"
+            "**Gear Pool (1–5 items, 20% Blueprint chance each — no exception for Chainsaw/Compound Bow):**\n"
             "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
             "• Legend Riot Set (5 pieces)\n"
-            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw *(always Blueprint)*\n"
-            "• Compound Bow Blueprint (always Blueprint)"
+            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw\n"
+            "• Compound Bow added to pool (20% Blueprint chance like all other items)"
         ),
         "quality": "—",
     },
@@ -252,7 +253,7 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="🥚 Kibble",
-        value="`/kibble-guide` — Which eggs unlock which kibble tier",
+        value="`/kibble-guide` — Which unfertilized eggs unlock which kibble tier",
         inline=False,
     )
     embed.add_field(
