@@ -460,8 +460,7 @@ async def mods_command(interaction: discord.Interaction):
     embed.add_field(
         name="⚔️ Gameplay Overhaul",
         value=(
-            "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses\n"
-            
+            "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses"
         ),
         inline=False,
     )
@@ -469,8 +468,8 @@ async def mods_command(interaction: discord.Interaction):
         name="🦕 Dino Tools",
         value=(
             "**Awesome Spyglass** — Extended spyglass with live stat display for dinos\n"
-            "**Dino Depot** — Dino management & storage\n"
-            "**Der Dino Finder** — Locate any dino on the map"
+            "**Der Dino Finder** — Locate any dino on the map\n"
+            "**Dino Depot** — Dino management & storage"
         ),
         inline=False,
     )
@@ -478,11 +477,13 @@ async def mods_command(interaction: discord.Interaction):
         name="⚙️ Quality of Life",
         value=(
             "**TG Stacking Mod 1000-50** — Stack size ×1000, weight reduced by 50%\n"
+            "**Upgrade Station** — Upgrade items to higher quality tiers\n"
             "**A Simple Performance Mod (60 FPS)** — Automatically runs performance commands on join "
             "(see below for full list)\n"
-            "**Crash Protector** — Protects your character from wild dinos and drowning when you crash\n"
-            "**Better Breeding** — Garanties always the better stats while breeding\n"
-            "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required"
+            "**Crash Protection** — Protects your character from wild dinos and drowning when you crash\n"
+            "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required\n"
+            "**Auto Engrams** — Automatically unlocks engrams as you level up — no manual engram point spending required\n"
+            "**Better Breeding** — Guarantees always the better stats while breeding"
         ),
         inline=False,
     )
