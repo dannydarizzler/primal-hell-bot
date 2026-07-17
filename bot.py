@@ -93,7 +93,7 @@ DROPS = {
             "• 15–35x Potent/Alpha Tranq Arrows\n"
             "• 2–5x Alpha Health Potion\n"
             "• 2–5x Medium XP Potion\n\n"
-            "**Gear Pool (1–5 items, no Blueprints):**\n"
+            "**Gear Pool (3–8 items, no Blueprints):**\n"
             "• Crossbow · Alpha Flak Set (5 pieces)\n"
             "• Alpha Pick · Hatchet · Sickle · Pike · Chainsaw"
         ),
@@ -102,7 +102,7 @@ DROPS = {
             "• 15–35x Potent/Alpha Tranq Arrows\n"
             "• 2–5x Alpha Health Potion\n"
             "• 2–5x Medium XP Potion\n\n"
-            "**Gear Pool (3–7 items, 20% Blueprint chance each):**\n"
+            "**Gear Pool (3–11 items, 20% Blueprint chance each):**\n"
             "• Crossbow · Alpha Flak Set (5 pieces)\n"
             "• Alpha Pick · Hatchet · Sickle · Pike · Chainsaw"
         ),
@@ -114,15 +114,13 @@ DROPS = {
             "• 10x Metal Foundation\n"
             "• 15x Metal Wall\n"
             "• 10x Metal Ceiling\n"
-            "• Dino Gateway + Gate\n"
-            "• 3x Dedicated Storage"
+            "• Dino Gateway + Gate"
         ),
         "double": (
             "• 20x Metal Foundation\n"
             "• 30x Metal Wall\n"
             "• 20x Metal Ceiling\n"
-            "• Dino Gateway + Gate\n"
-            "• 5x Dedicated Storage"
+            "• Dino Gateway + Gate"
         ),
         "quality": "—",
     },
@@ -134,7 +132,7 @@ DROPS = {
             "• 8–16x Elemental ADV Sniper Bullets\n"
             "• 2–5x Large XP Potion\n"
             "• 1–5x Mythic Health Potion\n\n"
-            "**Gear Pool (1–5 items, no Blueprints):**\n"
+            "**Gear Pool (3–8 items, no Blueprints):**\n"
             "• Longneck · Volcanic Flak Set (5 pieces)\n"
             "• Volcanic Pick · Hatchet · Sickle · Pike · Chainsaw"
         ),
@@ -144,7 +142,7 @@ DROPS = {
             "• 8–24x Elemental ADV Sniper Bullets\n"
             "• 2–5x Large XP Potion\n"
             "• 1–5x Mythic Health Potion\n\n"
-            "**Gear Pool (1–5 items, 20% Blueprint chance each):**\n"
+            "**Gear Pool (3–8 items, 20% Blueprint chance each):**\n"
             "• Longneck · Volcanic Flak Set (5 pieces)\n"
             "• Volcanic Pick · Hatchet · Sickle · Pike · Chainsaw\n"
             "• Fab Sniper (Mastercraft) *(Double crates only)*"
@@ -159,7 +157,7 @@ DROPS = {
             "• 1–2x Max XP Potion\n"
             "• 1–2x Nightmare Health Potion\n"
             "• 8–25x Primal Compound Bow Arrows\n\n"
-            "**Gear Pool (1–5 items, no Blueprints):**\n"
+            "**Gear Pool (3–8 items, no Blueprints):**\n"
             "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
             "• Legend Riot Set (5 pieces)\n"
             "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw"
@@ -171,7 +169,7 @@ DROPS = {
             "• 1–2x Nightmare Health Potion\n"
             "• 8–25x Primal Compound Bow Arrows\n"
             "• Additional guaranteed Primal ADV Sniper Bullets\n\n"
-            "**Gear Pool (1–5 items, 20% Blueprint chance each — no exception for Chainsaw/Compound Bow):**\n"
+            "**Gear Pool (3–8 items, 20% Blueprint chance each — no exception for Chainsaw/Compound Bow):**\n"
             "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
             "• Legend Riot Set (5 pieces)\n"
             "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw\n"
@@ -460,7 +458,8 @@ async def mods_command(interaction: discord.Interaction):
     embed.add_field(
         name="⚔️ Gameplay Overhaul",
         value=(
-            "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses"
+            "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses\n"
+            
         ),
         inline=False,
     )
@@ -468,8 +467,8 @@ async def mods_command(interaction: discord.Interaction):
         name="🦕 Dino Tools",
         value=(
             "**Awesome Spyglass** — Extended spyglass with live stat display for dinos\n"
-            "**Der Dino Finder** — Locate any dino on the map\n"
-            "**Dino Depot** — Dino management & storage"
+            "**Dino Depot** — Dino management & storage\n"
+            "**Der Dino Finder** — Locate any dino on the map"
         ),
         inline=False,
     )
@@ -477,13 +476,11 @@ async def mods_command(interaction: discord.Interaction):
         name="⚙️ Quality of Life",
         value=(
             "**TG Stacking Mod 1000-50** — Stack size ×1000, weight reduced by 50%\n"
-            "**Upgrade Station** — Upgrade items to higher quality tiers\n"
             "**A Simple Performance Mod (60 FPS)** — Automatically runs performance commands on join "
             "(see below for full list)\n"
-            "**Crash Protection** — Protects your character from wild dinos and drowning when you crash\n"
-            "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required\n"
-            "**Auto Engrams** — Automatically unlocks engrams as you level up — no manual engram point spending required\n"
-            "**Better Breeding** — Guarantees always the better stats while breeding"
+            "**Crash Protector** — Protects your character from wild dinos and drowning when you crash\n"
+            "**Better Breeding** — Garanties always the better stats while breeding\n"
+            "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required"
         ),
         inline=False,
     )
