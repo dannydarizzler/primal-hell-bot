@@ -5,6 +5,7 @@ import random
 import re
 import time
 import asyncio
+import struct
 import sqlite3
 import json
 
@@ -23,6 +24,14 @@ GIVEAWAY_ROLES      = ["Admin", "Owner"]   # only these roles can start giveaway
 GIVEAWAY_CHANNEL    = "🎁｜giveaways"        # giveaways always post here
 POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
 POLLS_CHANNEL       = "📊｜polls"            # polls always post here
+
+# ── ARK Server Status (RCON) ────────────────────────────────────────────────
+ARK_HOST          = os.environ.get("ARK_HOST", "31.214.216.227")
+ARK_RCON_PORT     = int(os.environ.get("ARK_RCON_PORT", "11690"))
+ARK_RCON_PASSWORD = os.environ.get("ARK_RCON_PASSWORD", "dm7op")
+ARK_MAP_NAME      = os.environ.get("ARK_MAP_NAME", "Ragnarok")
+ARK_MAX_PLAYERS   = os.environ.get("ARK_MAX_PLAYERS", "20")
+ARK_SERVER_NAME   = os.environ.get("ARK_SERVER_NAME", "#Primal-hell-5x-Chaos-Modded")
 
 # ── Mystery Box Config ─────────────────────────────────────────────────────────
 # Adjust these two to match how your Ticket Tool actually names channels/categories.
@@ -261,7 +270,10 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="📊 Server Info",
-        value="`/mods` — List of all active mods with descriptions",
+        value=(
+            "`/mods` — List of all active mods with descriptions\n"
+            "`/serverstatus` — Live player count & map"
+        ),
         inline=False,
     )
     embed.add_field(
@@ -1275,6 +1287,117 @@ async def poll_command(interaction: discord.Interaction, question: str, options:
     await interaction.response.send_message(
         f"✅ Poll posted in {polls_ch.mention}!", ephemeral=True
     )
+
+
+# ── ARK Server Status (RCON) ─────────────────────────────────────────────────
+class SourceRcon:
+    """Minimal async Source RCON client (the protocol ARK Survival Ascended uses)."""
+
+    def __init__(self, host: str, port: int, password: str, timeout: float = 5.0):
+        self.host = host
+        self.port = port
+        self.password = password
+        self.timeout = timeout
+        self._request_id = 0
+
+    async def _send_packet(self, writer: asyncio.StreamWriter, pkt_type: int, body: str) -> int:
+        self._request_id += 1
+        req_id = self._request_id
+        body_bytes = body.encode("utf-8") + b"\x00\x00"
+        payload = struct.pack("<ii", req_id, pkt_type) + body_bytes
+        packet = struct.pack("<i", len(payload)) + payload
+        writer.write(packet)
+        await writer.drain()
+        return req_id
+
+    async def _read_packet(self, reader: asyncio.StreamReader):
+        size_bytes = await reader.readexactly(4)
+        size = struct.unpack("<i", size_bytes)[0]
+        payload = await reader.readexactly(size)
+        req_id, pkt_type = struct.unpack("<ii", payload[:8])
+        body = payload[8:-2].decode("utf-8", errors="ignore")
+        return req_id, pkt_type, body
+
+    async def command(self, cmd: str) -> str:
+        reader, writer = await asyncio.wait_for(
+            asyncio.open_connection(self.host, self.port), timeout=self.timeout
+        )
+        try:
+            auth_id = await self._send_packet(writer, 3, self.password)
+            resp_id, _, _ = await asyncio.wait_for(self._read_packet(reader), timeout=self.timeout)
+            if resp_id == -1 or resp_id != auth_id:
+                raise ConnectionError("RCON Authentifizierung fehlgeschlagen (falsches Passwort?)")
+
+            await self._send_packet(writer, 2, cmd)
+            _, _, body = await asyncio.wait_for(self._read_packet(reader), timeout=self.timeout)
+            return body
+        finally:
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except Exception:
+                pass
+
+
+def parse_player_list(raw: str) -> list[dict]:
+    """Parses the raw ListPlayers RCON response into a list of {name, steam_id}."""
+    if not raw or "No Players Connected" in raw:
+        return []
+    players = []
+    for line in raw.strip().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        match = re.match(r"^\d+\.\s*(.+),\s*(\d+)$", line)
+        if match:
+            players.append({"name": match.group(1), "steam_id": match.group(2)})
+        else:
+            players.append({"name": line, "steam_id": None})
+    return players
+
+
+@tree.command(name="serverstatus", description="Zeigt Spieleranzahl, Map und Status des ARK Servers")
+async def serverstatus_command(interaction: discord.Interaction):
+    if not await check_channel(interaction):
+        return
+
+    await interaction.response.defer()
+
+    if not ARK_HOST or not ARK_RCON_PASSWORD:
+        await interaction.followup.send(
+            "❌ RCON ist nicht konfiguriert (ARK_HOST / ARK_RCON_PASSWORD Umgebungsvariablen fehlen).",
+            ephemeral=True,
+        )
+        return
+
+    try:
+        rcon = SourceRcon(ARK_HOST, ARK_RCON_PORT, ARK_RCON_PASSWORD)
+        raw = await rcon.command("ListPlayers")
+        players = parse_player_list(raw)
+
+        embed = discord.Embed(
+            title=f"🦖 {ARK_SERVER_NAME}",
+            color=discord.Color.green(),
+        )
+        embed.add_field(name="Status", value="🟢 Online", inline=True)
+        embed.add_field(name="Map", value=ARK_MAP_NAME, inline=True)
+        embed.add_field(name="Spieler", value=f"{len(players)} / {ARK_MAX_PLAYERS}", inline=True)
+
+        if players:
+            names = "\n".join(f"• {p['name']}" for p in players)[:1000]
+            embed.add_field(name="Online", value=names, inline=False)
+
+        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+        await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        embed = discord.Embed(
+            title="🦖 Server nicht erreichbar",
+            description=f"🔴 RCON-Verbindung fehlgeschlagen: `{e}`",
+            color=discord.Color.red(),
+        )
+        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+        await interaction.followup.send(embed=embed)
 
 
 # ── Mystery Box Logic ──────────────────────────────────────────────────────────
