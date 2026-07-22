@@ -38,24 +38,30 @@ ARK_SERVER_NAME   = os.environ.get("ARK_SERVER_NAME", "#Primal-hell-5x-Chaos-Mod
 TICKET_CHANNEL_PREFIX     = "ticket-"          # e.g. channel name starts with "ticket-"
 TICKET_CATEGORY_KEYWORDS  = ["ticket", "dono"] # fallback: category name contains one of these
 
-# (item name, weight in %) — must sum to 100
+# (item name, weight in %) — must sum to ~100
+# Weights are split into two tiers: "expensive" (19€/16€/15€/13€ items) and
+# "mid/budget" (12€ and below). Adding a new item to a tier rebalances that
+# tier's per-item weight so the overall odds stay consistent.
 MYSTERYBOX_ITEMS = [
-    ("7 Dedi Boxes of choice — 19€",                       2.00),
-    ("500 Kibble Set — 16€",                                2.00),
-    ("Instant Ascension → Level 180 — 15€",                 2.00),
-    ("15 BPs of choice — 13€",                               2.00),
-    ("4 Dedi Boxes of choice — 13€",                        7.67),
-    ("8 Breedpairs — 12€",                                  7.67),
-    ("3x Origin Set (33 Tokens + 33 Blood) — 10€",          7.67),
-    ("250 Kibble Set — 11€",                                7.67),
-    ("10 BPs of choice — 9€",                                7.67),
-    ("4 Breedpairs — 9€",                                    7.67),
-    ("2x Origin Set (22 Tokens + 22 Blood) — 7€",           7.67),
-    ("2 Dedi Boxes of choice — 7€",                          7.67),
-    ("100 Kibble Set — 6€",                                  7.67),
-    ("2 Breedpairs — 5€",                                    7.67),
-    ("5 BPs of choice — 5€",                                 7.67),
-    ("1x Origin Set (11 Tokens + 11 Blood) — 4€",           7.67),
+    ("7 Dedi Boxes of choice — 19€",                       1.79),
+    ("350x Tek Foundation/Wall/Ceiling + 1x Tek Generator + 350x Element — 19€", 1.79),
+    ("500 Kibble Set — 16€",                                1.79),
+    ("Instant Ascension → Level 180 — 15€",                 1.79),
+    ("15 BPs of choice — 13€",                               1.79),
+    ("250x Tek Foundation/Wall/Ceiling + 1x Tek Generator + 250x Element — 13€", 1.79),
+    ("4 Dedi Boxes of choice — 13€",                        6.87),
+    ("8 Breedpairs — 12€",                                  6.87),
+    ("3x Origin Set (33 Tokens + 33 Blood) — 10€",          6.87),
+    ("250 Kibble Set — 11€",                                6.87),
+    ("10 BPs of choice — 9€",                                6.87),
+    ("4 Breedpairs — 9€",                                    6.87),
+    ("2x Origin Set (22 Tokens + 22 Blood) — 7€",           6.87),
+    ("100x Tek Foundation/Wall/Ceiling + 1x Tek Generator + 100x Element — 7€", 6.87),
+    ("2 Dedi Boxes of choice — 7€",                          6.87),
+    ("100 Kibble Set — 6€",                                  6.87),
+    ("2 Breedpairs — 5€",                                    6.87),
+    ("5 BPs of choice — 5€",                                 6.87),
+    ("1x Origin Set (11 Tokens + 11 Blood) — 4€",           6.87),
 ]
 _MYSTERYBOX_NAMES   = [item[0] for item in MYSTERYBOX_ITEMS]
 _MYSTERYBOX_WEIGHTS = [item[1] for item in MYSTERYBOX_ITEMS]
@@ -470,8 +476,7 @@ async def mods_command(interaction: discord.Interaction):
     embed.add_field(
         name="⚔️ Gameplay Overhaul",
         value=(
-            "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses\n"
-            
+            "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses"
         ),
         inline=False,
     )
@@ -479,8 +484,8 @@ async def mods_command(interaction: discord.Interaction):
         name="🦕 Dino Tools",
         value=(
             "**Awesome Spyglass** — Extended spyglass with live stat display for dinos\n"
-            "**Dino Depot** — Dino management & storage\n"
-            "**Der Dino Finder** — Locate any dino on the map"
+            "**Dino Depot** — Dino & creature storage, fully crossplay-enabled (not just a cryopod clone — 200+ config options)\n"
+            "**Der Dino Finder** — Adds a minimap button to locate any dino on the map"
         ),
         inline=False,
     )
@@ -490,21 +495,13 @@ async def mods_command(interaction: discord.Interaction):
             "**TG Stacking Mod 1000-50** — Stack size ×1000, weight reduced by 50%\n"
             "**A Simple Performance Mod (60 FPS)** — Automatically runs performance commands on join "
             "(see below for full list)\n"
-            "**Crash Protector** — Protects your character from wild dinos and drowning when you crash\n"
-            "**Better Breeding** — Garanties always the better stats while breeding\n"
+            "**Crash Protector** — Protects logged-out players from wild animals and drowning\n"
+            "**Better Breeding** — Guarantees offspring inherit the best wild levels and mutations from their parents\n"
+            "**Auto Engrams** — Automatically unlocks engrams as you reach the required level\n"
+            "**Upgrade Station** — Upgrade items to higher quality tiers (ARK base items only)\n"
+            "**Pull It!** — Pull nearby resources straight into your crafting or repair queue\n"
+            "**Greenhouse Glass Fix** — Fixes greenhouse glass opacity so it actually looks like glass\n"
             "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="⛏️ Tool Harvesting Multipliers (Primal Chaos)",
-        value=(
-            "The in-game item descriptions for these tools are inaccurate — actual multipliers:\n"
-            "• Toxic Tools → **×1.5** harvesting\n"
-            "• Alpha Tools → **×2** harvesting\n"
-            "• Elemental Tools (Volcanic) → **×2.5** harvesting\n"
-            "• Mythic Tools → **×3** harvesting\n"
-            "*(Applies to Pick, Hatchet, Sickle, and Pike of each tier.)*"
         ),
         inline=False,
     )
@@ -655,105 +652,31 @@ async def kibble_guide_command(interaction: discord.Interaction):
         return
 
     embed = discord.Embed(
-        title="🥚 Kibble Progression Guide — Primal Chaos",
+        title="🥚 Kibble Guide — Primal Chaos",
         description=(
-            "Each kibble tier is crafted from **unfertilized eggs** of the previous tier "
-            "(combined with standard resources) in the **Primal Cauldron**. "
-            "Use the tier below to know which eggs to stockpile next.\n\u200b"
+            "Kibble comes in tiers — each tier is crafted from unfertilized eggs of the "
+            "previous tier, so keep at least one breeding pair alive per tier as you progress.\n\u200b"
         ),
     )
 
     embed.add_field(
-        name="1️⃣ Alpha Kibble",
+        name="📈 Progression",
         value=(
-            "**Needs:** Unfertilized **Toxic** Eggs\n"
-            "**Unlocks taming:** Alpha-tier creatures"
+            "Alpha → Elemental → Shadow/Fairy → Mythic/Fabled/Legendary → Demonic/Angelic → **Spirit & Chaos**"
         ),
         inline=False,
     )
     embed.add_field(
-        name="2️⃣ Elemental Kibble",
+        name="⚔️ Spirit & Chaos Kibble",
         value=(
-            "**Needs:** Unfertilized **Alpha** Eggs\n"
-            "**Unlocks taming:** Hydro · Volcanic · Electric creatures"
+            "These two top-tier kibbles aren't unlocked by eggs like the rest — you first need "
+            "to **defeat the Spirit Titan and Chaos Titan** to unlock their kibble engrams."
         ),
         inline=False,
     )
     embed.add_field(
-        name="3️⃣ Shadow & Fairy Kibble",
-        value=(
-            "**Needs:** **Elemental Fruits** (grown from Elemental Seeds, dropped by the "
-            "Hydro/Volcanic/Electric bosses)\n"
-            "**Unlocks taming:** Shadow · Fairy creatures"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="4️⃣ Mythic, Fabled & Legendary Kibble",
-        value=(
-            "**Needs:** Unfertilized **Shadow / Fairy** Eggs\n"
-            "**Unlocks taming:** Mythic (gatherers) · Fabled (haulers) · Legendary (combat)"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="5️⃣ Demonic & Angelic Kibble",
-        value=(
-            "**Needs:** Unfertilized **Mythic / Fabled / Legendary** Eggs *(pattern-based, "
-            "not officially confirmed — verify in-game before relying on it)*\n"
-            "**Unlocks taming:** Demonic · Angelic creatures"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="6️⃣ Spirit & Chaos Kibble",
-        value=(
-            "**Needs:** Defeat the **Spirit Titan** and **Chaos Titan** bosses "
-            "(summoned at the Primal Smithy) — this unlocks the kibble engram itself, "
-            "not just an egg tier\n"
-            "**Unlocks taming:** Spirit · Chaos creatures — these kibbles are also required "
-            "as a crafting ingredient for Origin → Nightmare Evolution"
-        ),
-        inline=False,
-    )
-    embed.add_field(name="​", value="​", inline=False)
-    embed.add_field(
-        name="🐣 Essential: Keep a Breeding Pair of Every Tier",
-        value=(
-            "To reach the endgame in this mod, it's essential to keep at least **one breeding "
-            "pair alive from every single tier** — from Toxic all the way up to Legendary/Fabled/Mythic. "
-            "You'll constantly need unfertilized eggs from earlier tiers to craft the next kibble tier, "
-            "so don't cull or release your old breeders once you've moved on — you'll need their eggs again."
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="📚 Which Dinos Lay Eggs?",
-        value=(
-            "Check the **#primal-chaos-creature-list-by-tier** channel — it lists every creature "
-            "by tier and marks which ones are egg-layers, so you know exactly what to breed for "
-            "each kibble stage."
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="🥚 Getting Unfertilized Eggs Efficiently",
-        value=(
-            "• Set `layegginterval` to **0.3** in Game.ini for steady egg production\n"
-            "• Keep at least 1 male + multiple females of the tier, **mate-boosted**\n"
-            "• **Disable mating** — this makes dinos lay unfertilized eggs instead\n"
-            "• Tame an **Oviraptor** for an extra egg-laying speed boost"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="📝 Note",
-        value=(
-            "Steps 1–4 and 6 are directly confirmed by the community progression guide. "
-            "Step 5 (Demonic & Angelic) follows the same egg-based pattern as earlier tiers "
-            "but hasn't been explicitly verified — if you test this in-game, let an admin know "
-            "so this guide can be updated."
-        ),
+        name="💡 Tip",
+        value="Don't cull your old breeders once you've moved up a tier — you'll need their eggs again for later kibble.",
         inline=False,
     )
 
