@@ -1616,14 +1616,36 @@ async def list_promos_command(interaction: discord.Interaction):
 # ── /balance ───────────────────────────────────────────────────────────────────
 @tree.command(name="balance", description="Check your Primal Hell Coins balance")
 async def balance_command(interaction: discord.Interaction):
-    coins = db_get_coins(str(interaction.user.id))
+    await interaction.response.defer(ephemeral=True)
+
+    coins = None
+    if SHOP_API_URL and BOT_SYNC_SECRET:
+        headers = {"x-bot-secret": BOT_SYNC_SECRET}
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{SHOP_API_URL}/api/admin/balance/{interaction.user.id}", headers=headers, timeout=10
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        coins = data["coins"]
+        except Exception as e:
+            print(f"⚠️ Could not fetch live balance for {interaction.user.id}: {e}")
+
+    if coins is None:
+        # Fallback to the bot's local (possibly outdated) copy if the shop is unreachable
+        coins = db_get_coins(str(interaction.user.id))
+        note = "\n\n⚠️ *Could not reach the shop — this number may be outdated.*"
+    else:
+        note = ""
+
     embed = discord.Embed(
         title="💰 Your Coin Balance",
-        description=f"You currently have **{coins:,} Coins**.\n\nTop up at the [Primal Hell Shop]({SHOP_PUBLIC_URL}).",
+        description=f"You currently have **{coins:,} Coins**.\n\nTop up at the [Primal Hell Shop]({SHOP_PUBLIC_URL}).{note}",
         color=discord.Color.orange(),
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 # ── Shop Sync (PayPal Coin Shop → Bot) ────────────────────────────────────────
