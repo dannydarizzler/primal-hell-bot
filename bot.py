@@ -1516,7 +1516,7 @@ PROMO_ADMIN_ROLES = ["Admin", "Owner"]  # only these roles can create/view promo
 async def create_promo_command(
     interaction: discord.Interaction,
     code: str,
-    bonus_percent: int,
+    bonus_percent: app_commands.Range[int, 1, 500],
     expires_hours: int = None,
     max_uses: int = None,
 ):
