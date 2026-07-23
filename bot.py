@@ -1595,6 +1595,11 @@ async def post_shop_embed_command(interaction: discord.Interaction, channel: dis
         color=discord.Color.from_rgb(255, 90, 31),
     )
     embed.add_field(
+        name="🔗 Shop Link",
+        value=SHOP_PUBLIC_URL,
+        inline=False,
+    )
+    embed.add_field(
         name="🛒 What you can do there",
         value=(
             "💰 Buy Primal Coins with PayPal\n"
@@ -1627,39 +1632,38 @@ async def post_vip_embed_command(interaction: discord.Interaction, channel: disc
         await interaction.response.send_message(f"❌ Only **{roles_text}** can post the VIP embed.", ephemeral=True)
         return
 
+    guild_icon = interaction.guild.icon.url if interaction.guild and interaction.guild.icon else None
+
     embed = discord.Embed(
         title="💎 VIP STATUS 💎",
-        description="――――――――――――――――――――――",
-        color=discord.Color.from_rgb(80, 170, 255),
+        description="◈─────────────────────────────◈",
+        color=discord.Color.from_rgb(88, 166, 255),
     )
+    if guild_icon:
+        embed.set_thumbnail(url=guild_icon)
+
     embed.add_field(
-        name="How does it work",
+        name="⚙️ How Does It Work",
         value=(
-            "• Boost the server to automatically unlock VIP status\n"
-            "• Perks activate automatically — no ticket needed\n"
-            "• VIP status lasts as long as your Boost is active (Boosts renew monthly, "
-            "auto-cancel if payment stops)"
+            "**·** Boost the server to automatically unlock VIP status\n"
+            "**·** Perks activate instantly — no ticket needed\n"
+            "**·** Stays active as long as your Boost is active *(Boosts renew "
+            "monthly, auto-cancel if payment stops)*"
         ),
         inline=False,
     )
+    embed.add_field(name="🪙 Primal Coins", value="**1,000** monthly\nwhile boosting", inline=True)
+    embed.add_field(name="👑 VIP Role", value="Exclusive\nserver role", inline=True)
+    embed.add_field(name="🎉 VIP Giveaways", value="Access to\nVIP-only draws", inline=True)
     embed.add_field(
-        name="Benefits",
+        name="📌 Things To Know",
         value=(
-            "`1000 Primal Coins — refreshes monthly, as long as you keep boosting`\n"
-            "`VIP Role`\n"
-            "`Access to exclusive VIP Giveaways`"
+            "**·** VIP perks are removed automatically once your Boost expires or is cancelled\n"
+            "**·** Primal Coins don't carry over — unused Coins reset each month"
         ),
         inline=False,
     )
-    embed.add_field(
-        name="Things to know",
-        value=(
-            "• VIP perks are automatically removed once your Boost expires or is cancelled\n"
-            "• Primal Coins do not carry over — unused Coins reset each month"
-        ),
-        inline=False,
-    )
-    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended", icon_url=guild_icon)
 
     await channel.send(embed=embed)
     await interaction.response.send_message(f"✅ VIP embed posted in {channel.mention}.", ephemeral=True)
@@ -1706,7 +1710,7 @@ async def balance_command(interaction: discord.Interaction):
 SHOP_API_URL       = os.environ.get("SHOP_API_URL", "").rstrip("/")   # e.g. https://primal-hell-shop.up.railway.app
 if SHOP_API_URL and not SHOP_API_URL.startswith(("http://", "https://")):
     SHOP_API_URL = f"https://{SHOP_API_URL}"  # tolerate missing protocol in the env var
-SHOP_PUBLIC_URL    = os.environ.get("SHOP_PUBLIC_URL", SHOP_API_URL or "https://primal-hell-shop.up.railway.app")
+SHOP_PUBLIC_URL    = os.environ.get("SHOP_PUBLIC_URL", SHOP_API_URL or "https://primal-hell-shop-production.up.railway.app")
 BOT_SYNC_SECRET    = os.environ.get("BOT_SYNC_SECRET", "")
 SHOP_SYNC_INTERVAL = int(os.environ.get("SHOP_SYNC_INTERVAL", "30"))  # seconds
 
