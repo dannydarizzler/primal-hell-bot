@@ -21,7 +21,6 @@ SUGGESTIONS_CHANNEL  = "❓｜suggestions"
 SERVER_CHANGES_CH    = "🔧｜server-changes"
 WIPE_ROLE           = "Admin"          # only members with this role can use /wipe
 COMMANDS_CHANNEL    = "🔎｜commands"
-MYSTERYBOX_ROLES    = ["Admin", "Owner"]   # only these roles can open mystery boxes
 GIVEAWAY_ROLES      = ["Admin", "Owner"]   # only these roles can start giveaways
 GIVEAWAY_CHANNEL    = "🎁｜giveaways"        # giveaways always post here
 POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
@@ -34,39 +33,6 @@ ARK_RCON_PASSWORD = os.environ.get("ARK_RCON_PASSWORD", "dm7op")
 ARK_MAP_NAME      = os.environ.get("ARK_MAP_NAME", "Ragnarok")
 ARK_MAX_PLAYERS   = os.environ.get("ARK_MAX_PLAYERS", "20")
 ARK_SERVER_NAME   = os.environ.get("ARK_SERVER_NAME", "#Primal-hell-5x-Chaos-Modded")
-
-# ── Mystery Box Config ─────────────────────────────────────────────────────────
-# Adjust these two to match how your Ticket Tool actually names channels/categories.
-TICKET_CHANNEL_PREFIX     = "ticket-"          # e.g. channel name starts with "ticket-"
-TICKET_CATEGORY_KEYWORDS  = ["ticket", "dono"] # fallback: category name contains one of these
-
-# (item name, weight in %) — must sum to ~100
-# Weights are split into two tiers: "expensive" (19€/16€/15€/13€ items) and
-# "mid/budget" (12€ and below). Adding a new item to a tier rebalances that
-# tier's per-item weight so the overall odds stay consistent.
-MYSTERYBOX_ITEMS = [
-    ("7 Dedi Boxes of choice — 19€",                       1.79),
-    ("350x Tek Foundation/Wall/Ceiling + 1x Tek Generator + 350x Element — 19€", 1.79),
-    ("500 Kibble Set — 16€",                                1.79),
-    ("Instant Ascension → Level 180 — 15€",                 1.79),
-    ("15 BPs of choice — 13€",                               1.79),
-    ("250x Tek Foundation/Wall/Ceiling + 1x Tek Generator + 250x Element — 13€", 1.79),
-    ("4 Dedi Boxes of choice — 13€",                        6.87),
-    ("8 Breedpairs — 12€",                                  6.87),
-    ("3x Origin Set (33 Tokens + 33 Blood) — 10€",          6.87),
-    ("250 Kibble Set — 11€",                                6.87),
-    ("10 BPs of choice — 9€",                                6.87),
-    ("4 Breedpairs — 9€",                                    6.87),
-    ("2x Origin Set (22 Tokens + 22 Blood) — 7€",           6.87),
-    ("100x Tek Foundation/Wall/Ceiling + 1x Tek Generator + 100x Element — 7€", 6.87),
-    ("2 Dedi Boxes of choice — 7€",                          6.87),
-    ("100 Kibble Set — 6€",                                  6.87),
-    ("2 Breedpairs — 5€",                                    6.87),
-    ("5 BPs of choice — 5€",                                 6.87),
-    ("1x Origin Set (11 Tokens + 11 Blood) — 4€",           6.87),
-]
-_MYSTERYBOX_NAMES   = [item[0] for item in MYSTERYBOX_ITEMS]
-_MYSTERYBOX_WEIGHTS = [item[1] for item in MYSTERYBOX_ITEMS]
 
 # ── Loot Drop Data ─────────────────────────────────────────────────────────────
 DROPS = {
@@ -209,38 +175,6 @@ async def check_channel(interaction: discord.Interaction) -> bool:
     return True
 
 
-# ── Channel Lock (ticket channels, for Mystery Box) ────────────────────────────
-def is_ticket_channel(channel: discord.abc.GuildChannel) -> bool:
-    name = channel.name.lower()
-    if name.startswith(TICKET_CHANNEL_PREFIX):
-        return True
-    category = getattr(channel, "category", None)
-    if category and any(kw in category.name.lower() for kw in TICKET_CATEGORY_KEYWORDS):
-        return True
-    return False
-
-
-async def check_ticket_channel(interaction: discord.Interaction) -> bool:
-    if not is_ticket_channel(interaction.channel):
-        await interaction.response.send_message(
-            "❌ This command only works inside a **Dono-request** ticket. "
-            "Open a ticket first to use Mystery Boxes.",
-            ephemeral=True,
-        )
-        return False
-
-    user_role_names = {role.name for role in interaction.user.roles}
-    if not user_role_names.intersection(MYSTERYBOX_ROLES):
-        roles_text = " / ".join(MYSTERYBOX_ROLES)
-        await interaction.response.send_message(
-            f"❌ Only **{roles_text}** can open Mystery Boxes.",
-            ephemeral=True,
-        )
-        return False
-
-    return True
-
-
 # ── /commands ──────────────────────────────────────────────────────────────────
 @tree.command(name="commands", description="Shows all available bot commands")
 async def commands_command(interaction: discord.Interaction):
@@ -286,7 +220,7 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="💰 Coins",
-        value="`/balance` — Check your Primal Hell Coins balance",
+        value="`/balance` — Check your Primal Coins balance",
         inline=False,
     )
     embed.add_field(
@@ -1359,58 +1293,6 @@ async def serverstatus_command(interaction: discord.Interaction):
         await interaction.followup.send(embed=embed)
 
 
-# ── Mystery Box Logic ──────────────────────────────────────────────────────────
-def draw_mysterybox(amount: int) -> list[str]:
-    """Draws `amount` DISTINCT items (no duplicates) based on weights.
-    Each pick is weighted, but the picked item is removed from the pool
-    before the next pick, so mysterybox2/3 always yield different items."""
-    amount = min(amount, len(_MYSTERYBOX_NAMES))
-    remaining_names = list(_MYSTERYBOX_NAMES)
-    remaining_weights = list(_MYSTERYBOX_WEIGHTS)
-
-    results = []
-    for _ in range(amount):
-        picked = random.choices(remaining_names, weights=remaining_weights, k=1)[0]
-        idx = remaining_names.index(picked)
-        results.append(picked)
-        del remaining_names[idx]
-        del remaining_weights[idx]
-
-    return results
-
-
-async def send_mysterybox_result(interaction: discord.Interaction, amount: int):
-    if not await check_ticket_channel(interaction):
-        return
-
-    results = draw_mysterybox(amount)
-
-    embed = discord.Embed(
-        title=f"📦 Mystery Box{'es' if amount > 1 else ''} Opened!",
-        description="\n".join(f"🎁 **{item}**" for item in results),
-        color=discord.Color.orange(),
-    )
-    embed.set_footer(text="Primal Hell • A staff member will fulfill this shortly")
-
-    await interaction.response.send_message(embed=embed)
-
-
-# ── /mysterybox1, /mysterybox2, /mysterybox3 ──────────────────────────────────
-@tree.command(name="mysterybox1", description="Open 1 Mystery Box (Dono-request tickets only)")
-async def mysterybox1_command(interaction: discord.Interaction):
-    await send_mysterybox_result(interaction, 1)
-
-
-@tree.command(name="mysterybox2", description="Open 2 Mystery Boxes (Dono-request tickets only)")
-async def mysterybox2_command(interaction: discord.Interaction):
-    await send_mysterybox_result(interaction, 2)
-
-
-@tree.command(name="mysterybox3", description="Open 3 Mystery Boxes (Dono-request tickets only)")
-async def mysterybox3_command(interaction: discord.Interaction):
-    await send_mysterybox_result(interaction, 3)
-
-
 # ── /check-items & /redeem-item ────────────────────────────────────────────────
 ADMIN_ITEM_ROLES = ["Admin", "Owner"]  # only these roles can view/redeem player items
 
@@ -1506,17 +1388,23 @@ async def redeem_item_command(interaction: discord.Interaction, item_id: int):
 PROMO_ADMIN_ROLES = ["Admin", "Owner"]  # only these roles can create/view promo codes
 
 
-@tree.command(name="create-promo", description="[Admin only] Create a Coin top-up promo code (e.g. BONUS20 = +20% Coins)")
+@tree.command(name="create-promo", description="[Admin only] Create a promo code — a top-up bonus % or a flat Coin reward")
 @app_commands.describe(
-    code="The code players will enter, e.g. BONUS20",
-    bonus_percent="Bonus percentage, e.g. 20 for +20% Coins",
+    code="The code players will enter, e.g. BONUS20 or REWARD1000",
+    type="Bonus = extra % on a Coin top-up. Reward = flat Coins, redeemable directly, no purchase needed.",
+    value="Bonus: percentage (e.g. 20 = +20%). Reward: flat Coin amount (e.g. 1000).",
     expires_hours="Code expires after this many hours (omit for no expiry)",
-    max_uses="Maximum number of times this code can be used (omit for unlimited)",
+    max_uses="Maximum number of times this code can be used in total (omit for unlimited)",
 )
+@app_commands.choices(type=[
+    app_commands.Choice(name="Bonus — % extra on a Coin top-up", value="bonus"),
+    app_commands.Choice(name="Reward — flat Coins, redeemable directly", value="reward"),
+])
 async def create_promo_command(
     interaction: discord.Interaction,
     code: str,
-    bonus_percent: app_commands.Range[int, 1, 500],
+    type: app_commands.Choice[str],
+    value: app_commands.Range[int, 1, 1000000],
     expires_hours: int = None,
     max_uses: int = None,
 ):
@@ -1535,7 +1423,9 @@ async def create_promo_command(
     headers = {"x-bot-secret": BOT_SYNC_SECRET}
     body = {
         "code": code,
-        "bonusPercent": bonus_percent,
+        "type": type.value,
+        "bonusPercent": value if type.value == "bonus" else None,
+        "rewardCoins": value if type.value == "reward" else None,
         "expiresInHours": expires_hours,
         "maxUses": max_uses,
         "createdBy": str(interaction.user.id),
@@ -1558,11 +1448,14 @@ async def create_promo_command(
         expiry_text = "Never"
     uses_text = str(data["maxUses"]) if data.get("maxUses") else "Unlimited"
 
+    value_line = f"+{data['bonusPercent']}% Coins on top-up" if type.value == "bonus" else f"{data['rewardCoins']:,} Coins (redeemable directly, no purchase needed)"
+
     embed = discord.Embed(
         title="🎟️ Promo Code Created",
         description=(
             f"Code: **{data['code']}**\n"
-            f"Bonus: **+{data['bonusPercent']}%** Coins\n"
+            f"Type: **{'Bonus' if type.value == 'bonus' else 'Reward'}**\n"
+            f"Value: **{value_line}**\n"
             f"Expires: {expiry_text}\n"
             f"Max uses: {uses_text}"
         ),
@@ -1607,7 +1500,8 @@ async def list_promos_command(interaction: discord.Interaction):
         expired = p["expires_at"] and datetime.datetime.fromisoformat(p["expires_at"].replace("Z", "+00:00")).timestamp() * 1000 < now_ms
         status = "🔴 Expired" if expired else "🟢 Active"
         uses = f"{p['uses_count']}/{p['max_uses']}" if p["max_uses"] else f"{p['uses_count']}/∞"
-        lines.append(f"**{p['code']}** — +{p['bonus_percent']}% · {uses} uses · {status}")
+        value_text = f"+{p['bonus_percent']}%" if p.get("type") == "bonus" else f"{p['reward_coins']:,} Coins"
+        lines.append(f"**{p['code']}** ({p.get('type', 'bonus')}) — {value_text} · {uses} uses · {status}")
 
     embed = discord.Embed(title="🎟️ Promo Codes", description="\n".join(lines), color=discord.Color.gold())
     await interaction.followup.send(embed=embed, ephemeral=True)
