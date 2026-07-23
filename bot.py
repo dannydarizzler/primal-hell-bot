@@ -230,10 +230,17 @@ async def commands_command(interaction: discord.Interaction):
         inline=False,
     )
 
+
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed)
 
-
+# ── /whoami ────────────────────────────────────────────────────────────────────
+@tree.command(name="whoami", description="Shows your Discord User-ID")
+async def whoami_command(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        f"👤 Your User-ID: `{interaction.user.id}`",
+        ephemeral=True,
+    )
 # ── /drop Command ──────────────────────────────────────────────────────────────
 @tree.command(name="drop", description="Shows the contents of a loot drop")
 @app_commands.describe(color="Which drop color?")
