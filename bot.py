@@ -4,6 +4,7 @@ import os
 import random
 import re
 import time
+import datetime
 import asyncio
 import struct
 import sqlite3
@@ -1499,6 +1500,117 @@ async def redeem_item_command(interaction: discord.Interaction, item_id: int):
         f"✅ Marked `#{item_id}` **{item['item_won']}** as redeemed for <@{item['discord_id']}>.",
         ephemeral=True,
     )
+
+
+# ── /create-promo & /list-promos ────────────────────────────────────────────────
+PROMO_ADMIN_ROLES = ["Admin", "Owner"]  # only these roles can create/view promo codes
+
+
+@tree.command(name="create-promo", description="[Admin only] Create a Coin top-up promo code (e.g. BONUS20 = +20% Coins)")
+@app_commands.describe(
+    code="The code players will enter, e.g. BONUS20",
+    bonus_percent="Bonus percentage, e.g. 20 for +20% Coins",
+    expires_hours="Code expires after this many hours (omit for no expiry)",
+    max_uses="Maximum number of times this code can be used (omit for unlimited)",
+)
+async def create_promo_command(
+    interaction: discord.Interaction,
+    code: str,
+    bonus_percent: int,
+    expires_hours: int = None,
+    max_uses: int = None,
+):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(PROMO_ADMIN_ROLES):
+        roles_text = " / ".join(PROMO_ADMIN_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can create promo codes.", ephemeral=True)
+        return
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    body = {
+        "code": code,
+        "bonusPercent": bonus_percent,
+        "expiresInHours": expires_hours,
+        "maxUses": max_uses,
+        "createdBy": str(interaction.user.id),
+    }
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{SHOP_API_URL}/api/admin/promo", headers=headers, json=body, timeout=10) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    await interaction.followup.send(f"❌ {data.get('error', 'Could not create code.')}", ephemeral=True)
+                    return
+    except Exception as e:
+        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
+        return
+
+    if data.get("expiresAt"):
+        expires_dt = datetime.datetime.fromisoformat(data["expiresAt"].replace("Z", "+00:00"))
+        expiry_text = f"<t:{int(expires_dt.timestamp())}:R>"
+    else:
+        expiry_text = "Never"
+    uses_text = str(data["maxUses"]) if data.get("maxUses") else "Unlimited"
+
+    embed = discord.Embed(
+        title="🎟️ Promo Code Created",
+        description=(
+            f"Code: **{data['code']}**\n"
+            f"Bonus: **+{data['bonusPercent']}%** Coins\n"
+            f"Expires: {expiry_text}\n"
+            f"Max uses: {uses_text}"
+        ),
+        color=discord.Color.gold(),
+    )
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+@tree.command(name="list-promos", description="[Admin only] List all promo codes and their usage")
+async def list_promos_command(interaction: discord.Interaction):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(PROMO_ADMIN_ROLES):
+        roles_text = " / ".join(PROMO_ADMIN_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can view promo codes.", ephemeral=True)
+        return
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{SHOP_API_URL}/api/admin/promo", headers=headers, timeout=10) as resp:
+                if resp.status != 200:
+                    await interaction.followup.send(f"❌ Shop returned an error (status {resp.status}).", ephemeral=True)
+                    return
+                promos = await resp.json()
+    except Exception as e:
+        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
+        return
+
+    if not promos:
+        await interaction.followup.send("ℹ️ No promo codes exist yet.", ephemeral=True)
+        return
+
+    lines = []
+    now_ms = discord.utils.utcnow().timestamp() * 1000
+    for p in promos[:20]:
+        expired = p["expires_at"] and datetime.datetime.fromisoformat(p["expires_at"].replace("Z", "+00:00")).timestamp() * 1000 < now_ms
+        status = "🔴 Expired" if expired else "🟢 Active"
+        uses = f"{p['uses_count']}/{p['max_uses']}" if p["max_uses"] else f"{p['uses_count']}/∞"
+        lines.append(f"**{p['code']}** — +{p['bonus_percent']}% · {uses} uses · {status}")
+
+    embed = discord.Embed(title="🎟️ Promo Codes", description="\n".join(lines), color=discord.Color.gold())
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 # ── /balance ───────────────────────────────────────────────────────────────────
