@@ -23,6 +23,7 @@ WIPE_ROLE           = "Admin"          # only members with this role can use /wi
 COMMANDS_CHANNEL    = "🔎｜commands"
 GIVEAWAY_ROLES      = ["Admin", "Owner"]   # only these roles can start giveaways
 GIVEAWAY_CHANNEL    = "🎁｜giveaways"        # giveaways always post here
+VIP_GIVEAWAY_CHANNEL = "💎｜vip-giveaways"    # VIP-only giveaways always post here
 POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
 POLLS_CHANNEL       = "📊｜polls"            # polls always post here
 
@@ -983,11 +984,11 @@ class GiveawayView(discord.ui.View):
             pass
 
 
-async def start_giveaway(interaction: discord.Interaction, prize: str, seconds: int, winners_count: int):
-    channel = discord.utils.get(interaction.guild.channels, name=GIVEAWAY_CHANNEL)
+async def start_giveaway(interaction: discord.Interaction, prize: str, seconds: int, winners_count: int, channel_name: str = GIVEAWAY_CHANNEL):
+    channel = discord.utils.get(interaction.guild.channels, name=channel_name)
     if channel is None:
         await interaction.response.send_message(
-            f"❌ Could not find the **{GIVEAWAY_CHANNEL}** channel.", ephemeral=True
+            f"❌ Could not find the **{channel_name}** channel.", ephemeral=True
         )
         return
 
@@ -1115,6 +1116,63 @@ async def giveaway_start_command(
         seconds = parse_duration(duration.value)
 
     await start_giveaway(interaction, prize, seconds, winners)
+
+
+# ── /vip-giveaway-start ──────────────────────────────────────────────────────────
+# Identical to /giveaway-start, but posts in the VIP-only giveaway channel instead.
+@tree.command(name="vip-giveaway-start", description="[Admin only] Start a new giveaway in #vip-giveaways")
+@app_commands.describe(
+    prize="What are you giving away?",
+    duration="How long should the giveaway run?",
+    winners="How many winners?",
+    custom_duration="Only used when Duration = Custom (e.g. 5d, 6h30m, 90m)",
+)
+@app_commands.choices(duration=[
+    app_commands.Choice(name="24 Hours", value="24h"),
+    app_commands.Choice(name="48 Hours", value="48h"),
+    app_commands.Choice(name="72 Hours", value="72h"),
+    app_commands.Choice(name="Custom",   value="custom"),
+])
+async def vip_giveaway_start_command(
+    interaction: discord.Interaction,
+    prize: str,
+    duration: app_commands.Choice[str],
+    winners: int,
+    custom_duration: str = None,
+):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(GIVEAWAY_ROLES):
+        roles_text = " / ".join(GIVEAWAY_ROLES)
+        await interaction.response.send_message(
+            f"❌ Only **{roles_text}** can start giveaways.", ephemeral=True
+        )
+        return
+
+    if winners < 1:
+        await interaction.response.send_message(
+            "❌ Winners must be a positive whole number.", ephemeral=True
+        )
+        return
+
+    if duration.value == "custom":
+        if not custom_duration:
+            await interaction.response.send_message(
+                "❌ You selected **Custom** — please also fill in `custom_duration` "
+                "(e.g. `5d`, `6h30m`, `90m`).",
+                ephemeral=True,
+            )
+            return
+        seconds = parse_duration(custom_duration)
+        if seconds is None:
+            await interaction.response.send_message(
+                "❌ Invalid custom duration format. Use combinations like `1d`, `2h30m`, `45m`.",
+                ephemeral=True,
+            )
+            return
+    else:
+        seconds = parse_duration(duration.value)
+
+    await start_giveaway(interaction, prize, seconds, winners, channel_name=VIP_GIVEAWAY_CHANNEL)
 
 
 # ── Poll System ─────────────────────────────────────────────────────────────────
