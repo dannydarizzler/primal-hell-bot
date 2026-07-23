@@ -1507,6 +1507,58 @@ async def list_promos_command(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
+# ── /post-shop-embed ────────────────────────────────────────────────────────────
+SHOP_EMBED_ROLES = ["Admin", "Owner"]  # only these roles can post the shop announcement
+
+
+class ShopLinkView(discord.ui.View):
+    def __init__(self, shop_url: str):
+        super().__init__(timeout=None)
+        self.add_item(discord.ui.Button(label="🛒 Visit the Shop", style=discord.ButtonStyle.link, url=shop_url))
+
+
+@tree.command(name="post-shop-embed", description="[Admin only] Post the Primal Hell Shop announcement embed in a channel")
+@app_commands.describe(channel="Which channel should the embed be posted in?")
+async def post_shop_embed_command(interaction: discord.Interaction, channel: discord.TextChannel):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(SHOP_EMBED_ROLES):
+        roles_text = " / ".join(SHOP_EMBED_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can post the shop embed.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🔥 PRIMAL HELL SHOP",
+        description=(
+            "Your support fuels the growth of Primal Hell.\n\n"
+            "Top up **Primal Coins** with PayPal, open **Mystery Chests**, or buy guaranteed "
+            "item packs directly — no ticket, no waiting on a reply. The more you support the "
+            "server, the more rewards you unlock."
+        ),
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.add_field(
+        name="🛒 What you can do there",
+        value=(
+            "💰 Buy Primal Coins with PayPal\n"
+            "📦 Open Mystery Chests for random rewards\n"
+            "🛍️ Buy guaranteed packs directly — no RNG\n"
+            "🎒 Track every purchase in your **My Items** tab"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="📦 How to claim your items",
+        value="After a purchase, open a ticket on Discord so a staff member can hand it to you in-game.",
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+
+    view = ShopLinkView(SHOP_PUBLIC_URL)
+    await channel.send(embed=embed, view=view)
+
+    await interaction.response.send_message(f"✅ Shop embed posted in {channel.mention}.", ephemeral=True)
+
+
 # ── /balance ───────────────────────────────────────────────────────────────────
 @tree.command(name="balance", description="Check your Primal Hell Coins balance")
 async def balance_command(interaction: discord.Interaction):
