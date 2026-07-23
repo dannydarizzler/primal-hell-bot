@@ -1617,6 +1617,54 @@ async def post_shop_embed_command(interaction: discord.Interaction, channel: dis
     await interaction.response.send_message(f"✅ Shop embed posted in {channel.mention}.", ephemeral=True)
 
 
+# ── /post-vip-embed ───────────────────────────────────────────────────────────
+@tree.command(name="post-vip-embed", description="[Admin only] Post the VIP Status info embed in a channel")
+@app_commands.describe(channel="Which channel should the embed be posted in?")
+async def post_vip_embed_command(interaction: discord.Interaction, channel: discord.TextChannel):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(SHOP_EMBED_ROLES):
+        roles_text = " / ".join(SHOP_EMBED_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can post the VIP embed.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="💎 VIP STATUS 💎",
+        description="――――――――――――――――――――――",
+        color=discord.Color.from_rgb(80, 170, 255),
+    )
+    embed.add_field(
+        name="How does it work",
+        value=(
+            "• Boost the server to automatically unlock VIP status\n"
+            "• Perks activate automatically — no ticket needed\n"
+            "• VIP status lasts as long as your Boost is active (Boosts renew monthly, "
+            "auto-cancel if payment stops)"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="Benefits",
+        value=(
+            "`1000 Primal Coins — refreshes monthly, as long as you keep boosting`\n"
+            "`VIP Role`\n"
+            "`Access to exclusive VIP Giveaways`"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="Things to know",
+        value=(
+            "• VIP perks are automatically removed once your Boost expires or is cancelled\n"
+            "• Primal Coins do not carry over — unused Coins reset each month"
+        ),
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+
+    await channel.send(embed=embed)
+    await interaction.response.send_message(f"✅ VIP embed posted in {channel.mention}.", ephemeral=True)
+
+
 # ── /balance ───────────────────────────────────────────────────────────────────
 @tree.command(name="balance", description="Check your Primal Hell Coins balance")
 async def balance_command(interaction: discord.Interaction):
