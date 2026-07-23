@@ -8,6 +8,7 @@ import asyncio
 import struct
 import sqlite3
 import json
+import aiohttp
 
 # ── Bot Setup ──────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
@@ -1409,6 +1410,97 @@ async def mysterybox3_command(interaction: discord.Interaction):
     await send_mysterybox_result(interaction, 3)
 
 
+# ── /check-items & /redeem-item ────────────────────────────────────────────────
+ADMIN_ITEM_ROLES = ["Admin", "Owner"]  # only these roles can view/redeem player items
+
+
+def _tier_emoji(tier: str) -> str:
+    return {"tier1": "🟡", "tier2": "🟣", "tier3": "🔴"}.get(tier, "📦")
+
+
+@tree.command(name="check-items", description="[Admin only] View a player's won chest items")
+@app_commands.describe(player="Which player's items do you want to check?")
+async def check_items_command(interaction: discord.Interaction, player: discord.Member):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(ADMIN_ITEM_ROLES):
+        roles_text = " / ".join(ADMIN_ITEM_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can check player items.", ephemeral=True)
+        return
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f"{SHOP_API_URL}/api/admin/items/{player.id}", headers=headers, timeout=10) as resp:
+                if resp.status != 200:
+                    await interaction.followup.send(f"❌ Shop returned an error (status {resp.status}).", ephemeral=True)
+                    return
+                items = await resp.json()
+    except Exception as e:
+        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
+        return
+
+    if not items:
+        await interaction.followup.send(f"ℹ️ {player.mention} hasn't opened any chests yet.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title=f"🎒 Items — {player.display_name}",
+        color=discord.Color.orange(),
+    )
+    lines = []
+    for item in items[:25]:  # Discord embed field value limit safety
+        status_icon = "✅ Redeemed" if item["status"] == "redeemed" else "🟠 Active"
+        lines.append(f"`#{item['id']}` {_tier_emoji(item['tier'])} **{item['item_won']}** — {status_icon}")
+    embed.description = "\n".join(lines)
+    embed.set_footer(text="Use /redeem-item <ID> once you've delivered an item in-game")
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+@tree.command(name="redeem-item", description="[Admin only] Mark a player's chest item as redeemed (delivered in-game)")
+@app_commands.describe(item_id="The item ID shown in /check-items (e.g. 12)")
+async def redeem_item_command(interaction: discord.Interaction, item_id: int):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(ADMIN_ITEM_ROLES):
+        roles_text = " / ".join(ADMIN_ITEM_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can redeem items.", ephemeral=True)
+        return
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    body = {"adminDiscordId": str(interaction.user.id)}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{SHOP_API_URL}/api/admin/items/{item_id}/redeem", headers=headers, json=body, timeout=10
+            ) as resp:
+                if resp.status == 404:
+                    await interaction.followup.send(f"❌ No item found with ID `#{item_id}`.", ephemeral=True)
+                    return
+                if resp.status != 200:
+                    await interaction.followup.send(f"❌ Shop returned an error (status {resp.status}).", ephemeral=True)
+                    return
+                item = await resp.json()
+    except Exception as e:
+        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
+        return
+
+    await interaction.followup.send(
+        f"✅ Marked `#{item_id}` **{item['item_won']}** as redeemed for <@{item['discord_id']}>.",
+        ephemeral=True,
+    )
+
+
 # ── /balance ───────────────────────────────────────────────────────────────────
 @tree.command(name="balance", description="Check your Primal Hell Coins balance")
 async def balance_command(interaction: discord.Interaction):
@@ -1426,11 +1518,11 @@ async def balance_command(interaction: discord.Interaction):
 # Polls the shop's protected API every SHOP_SYNC_INTERVAL seconds for newly
 # completed purchases, credits the coins locally, and DMs the buyer.
 SHOP_API_URL       = os.environ.get("SHOP_API_URL", "").rstrip("/")   # e.g. https://primal-hell-shop.up.railway.app
+if SHOP_API_URL and not SHOP_API_URL.startswith(("http://", "https://")):
+    SHOP_API_URL = f"https://{SHOP_API_URL}"  # tolerate missing protocol in the env var
 SHOP_PUBLIC_URL    = os.environ.get("SHOP_PUBLIC_URL", SHOP_API_URL or "https://primal-hell-shop.up.railway.app")
 BOT_SYNC_SECRET    = os.environ.get("BOT_SYNC_SECRET", "")
 SHOP_SYNC_INTERVAL = int(os.environ.get("SHOP_SYNC_INTERVAL", "30"))  # seconds
-
-import aiohttp
 
 
 async def sync_shop_purchases():
