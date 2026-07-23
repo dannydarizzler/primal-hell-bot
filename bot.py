@@ -283,6 +283,11 @@ async def commands_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
+        name="💰 Coins",
+        value="`/balance` — Check your Primal Hell Coins balance",
+        inline=False,
+    )
+    embed.add_field(
         name="💡 Suggestions",
         value="`/suggestion <text>` — Submit a suggestion",
         inline=False,
@@ -875,6 +880,13 @@ def init_db():
             end_time REAL NOT NULL
         )
     """)
+    # ── Coins system tables (shared SQLite file, separate tables) ──────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS coin_balances (
+            discord_id TEXT PRIMARY KEY,
+            coins INTEGER NOT NULL DEFAULT 0
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -934,6 +946,28 @@ def db_load_all_giveaways() -> dict:
             "channel_id": channel_id,
         }
     return loaded
+
+
+# ── Coins — DB helpers ─────────────────────────────────────────────────────────
+def db_add_coins(discord_id: str, amount: int) -> int:
+    """Adds `amount` coins to a user's balance (creates the row if needed). Returns new balance."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        "INSERT INTO coin_balances (discord_id, coins) VALUES (?, ?) "
+        "ON CONFLICT(discord_id) DO UPDATE SET coins = coins + excluded.coins",
+        (discord_id, amount),
+    )
+    conn.commit()
+    row = conn.execute("SELECT coins FROM coin_balances WHERE discord_id = ?", (discord_id,)).fetchone()
+    conn.close()
+    return row[0] if row else amount
+
+
+def db_get_coins(discord_id: str) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute("SELECT coins FROM coin_balances WHERE discord_id = ?", (discord_id,)).fetchone()
+    conn.close()
+    return row[0] if row else 0
 
 
 init_db()
@@ -1375,6 +1409,88 @@ async def mysterybox3_command(interaction: discord.Interaction):
     await send_mysterybox_result(interaction, 3)
 
 
+# ── /balance ───────────────────────────────────────────────────────────────────
+@tree.command(name="balance", description="Check your Primal Hell Coins balance")
+async def balance_command(interaction: discord.Interaction):
+    coins = db_get_coins(str(interaction.user.id))
+    embed = discord.Embed(
+        title="💰 Your Coin Balance",
+        description=f"You currently have **{coins:,} Coins**.\n\nTop up at the [Primal Hell Shop]({SHOP_PUBLIC_URL}).",
+        color=discord.Color.orange(),
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# ── Shop Sync (PayPal Coin Shop → Bot) ────────────────────────────────────────
+# Polls the shop's protected API every SHOP_SYNC_INTERVAL seconds for newly
+# completed purchases, credits the coins locally, and DMs the buyer.
+SHOP_API_URL       = os.environ.get("SHOP_API_URL", "").rstrip("/")   # e.g. https://primal-hell-shop.up.railway.app
+SHOP_PUBLIC_URL    = os.environ.get("SHOP_PUBLIC_URL", SHOP_API_URL or "https://primal-hell-shop.up.railway.app")
+BOT_SYNC_SECRET    = os.environ.get("BOT_SYNC_SECRET", "")
+SHOP_SYNC_INTERVAL = int(os.environ.get("SHOP_SYNC_INTERVAL", "30"))  # seconds
+
+import aiohttp
+
+
+async def sync_shop_purchases():
+    """Background loop: periodically pulls completed-but-unprocessed purchases
+    from the shop server and credits the coins to the buyer here in the bot."""
+    await client.wait_until_ready()
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        print("⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — shop coin sync is disabled.")
+        return
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+
+    async with aiohttp.ClientSession() as session:
+        while not client.is_closed():
+            try:
+                async with session.get(f"{SHOP_API_URL}/api/bot/pending-purchases", headers=headers, timeout=10) as resp:
+                    if resp.status != 200:
+                        print(f"⚠️ Shop sync: unexpected status {resp.status}")
+                        await asyncio.sleep(SHOP_SYNC_INTERVAL)
+                        continue
+                    purchases = await resp.json()
+
+                for purchase in purchases:
+                    discord_id = purchase["discord_id"]
+                    coins = purchase["coins"]
+                    new_balance = db_add_coins(discord_id, coins)
+
+                    # Mark as processed first (idempotency > notification delivery)
+                    async with session.post(
+                        f"{SHOP_API_URL}/api/bot/mark-processed/{purchase['id']}",
+                        headers=headers,
+                        timeout=10,
+                    ):
+                        pass
+
+                    # Best-effort DM to the buyer
+                    try:
+                        user = await client.fetch_user(int(discord_id))
+                        embed = discord.Embed(
+                            title="🔥 Coins gutgeschrieben!",
+                            description=(
+                                f"Deine Zahlung wurde bestätigt — **{coins:,} Coins** wurden deinem Konto gutgeschrieben.\n\n"
+                                f"Neues Guthaben: **{new_balance:,} Coins**"
+                            ),
+                            color=discord.Color.orange(),
+                        )
+                        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+                        await user.send(embed=embed)
+                    except Exception as dm_err:
+                        print(f"ℹ️ Could not DM user {discord_id} about their coin top-up: {dm_err}")
+
+                    print(f"✅ Credited {coins} coins to {discord_id} (new balance: {new_balance})")
+
+            except Exception as e:
+                print(f"⚠️ Shop sync error: {e}")
+
+            await asyncio.sleep(SHOP_SYNC_INTERVAL)
+
+
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
 @client.event
 async def on_message(message: discord.Message):
@@ -1448,6 +1564,11 @@ async def on_ready():
             asyncio.create_task(finish_giveaway(message_id))
         else:
             asyncio.create_task(end_giveaway_after(message_id, remaining))
+
+    # Start the shop → bot coin sync loop (only once, even across reconnects)
+    if not getattr(client, "_shop_sync_started", False):
+        client._shop_sync_started = True
+        asyncio.create_task(sync_shop_purchases())
 
     print(f"✅ Bot online as {client.user} — {len(loaded)} giveaway(s) restored from DB")
 
