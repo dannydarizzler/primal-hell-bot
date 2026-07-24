@@ -230,17 +230,10 @@ async def commands_command(interaction: discord.Interaction):
         inline=False,
     )
 
-
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed)
 
-# ── /whoami ────────────────────────────────────────────────────────────────────
-@tree.command(name="whoami", description="Shows your Discord User-ID")
-async def whoami_command(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        f"👤 Your User-ID: `{interaction.user.id}`",
-        ephemeral=True,
-    )
+
 # ── /drop Command ──────────────────────────────────────────────────────────────
 @tree.command(name="drop", description="Shows the contents of a loot drop")
 @app_commands.describe(color="Which drop color?")
@@ -1674,6 +1667,62 @@ async def post_vip_embed_command(interaction: discord.Interaction, channel: disc
 
     await channel.send(embed=embed)
     await interaction.response.send_message(f"✅ VIP embed posted in {channel.mention}.", ephemeral=True)
+
+
+# ── /admin-commands ──────────────────────────────────────────────────────────────
+ADMIN_COMMANDS_ROLES = ["Admin", "Owner"]  # only these roles can view this overview
+
+
+@tree.command(name="admin-commands", description="[Admin only] Shows all available admin commands")
+async def admin_commands_command(interaction: discord.Interaction):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(ADMIN_COMMANDS_ROLES):
+        roles_text = " / ".join(ADMIN_COMMANDS_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can view this list.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🛠️ Admin Commands",
+        description="Overview of every admin-only command on this bot.",
+        color=discord.Color.dark_red(),
+    )
+    embed.add_field(
+        name="📢 Announcements",
+        value=(
+            "`/wipe` — Announce a wild dino wipe in #announcements\n"
+            "`/post-shop-embed` — Post the Shop announcement embed\n"
+            "`/post-vip-embed` — Post the VIP Status info embed"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🎉 Giveaways & Events",
+        value=(
+            "`/giveaway-start` — Start a giveaway in #giveaways\n"
+            "`/vip-giveaway-start` — Start a giveaway in #vip-giveaways\n"
+            "`/event-100-5` / `/event-500-10` / `/event-1000-20` — Number-guess giveaways in Global Chat\n"
+            "`/poll` — Create a poll in #polls"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🎒 Shop Items",
+        value=(
+            "`/check-items <player>` — View a player's chest/shop items\n"
+            "`/redeem-item <id>` — Mark an item as delivered in-game"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🎟️ Promo Codes",
+        value=(
+            "`/create-promo` — Create a Bonus (%) or Reward (flat Coins) code\n"
+            "`/list-promos` — View all promo codes and their usage"
+        ),
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # ── /balance ───────────────────────────────────────────────────────────────────
