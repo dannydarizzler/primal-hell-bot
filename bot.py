@@ -1829,6 +1829,64 @@ async def sync_shop_purchases():
             await asyncio.sleep(SHOP_SYNC_INTERVAL)
 
 
+async def sync_shop_spins():
+    """Background loop: periodically pulls Lucky Wheel spins that haven't been
+    DMed yet, and sends the winner a congratulations message."""
+    await client.wait_until_ready()
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        print("⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — Lucky Wheel DM sync is disabled.")
+        return
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+
+    async with aiohttp.ClientSession() as session:
+        while not client.is_closed():
+            try:
+                async with session.get(f"{SHOP_API_URL}/api/bot/pending-spins", headers=headers, timeout=10) as resp:
+                    if resp.status != 200:
+                        print(f"⚠️ Spin sync: unexpected status {resp.status}")
+                        await asyncio.sleep(SHOP_SYNC_INTERVAL)
+                        continue
+                    spins = await resp.json()
+
+                for spin in spins:
+                    discord_id = spin["discord_id"]
+                    amount = spin["amount"]
+                    is_jackpot = bool(spin["jackpot"])
+
+                    # Mark as notified first (idempotency > notification delivery)
+                    async with session.post(
+                        f"{SHOP_API_URL}/api/bot/mark-spin-notified/{spin['id']}",
+                        headers=headers,
+                        timeout=10,
+                    ):
+                        pass
+
+                    try:
+                        user = await client.fetch_user(int(discord_id))
+                        title = "🎉 JACKPOT!" if is_jackpot else "🎡 Lucky Wheel Win!"
+                        embed = discord.Embed(
+                            title=title,
+                            description=(
+                                f"Congratulations, you have won **{amount:,} Primal Coins** on the Lucky Wheel!\n\n"
+                                "Spin again in 24 hours."
+                            ),
+                            color=discord.Color.gold() if is_jackpot else discord.Color.orange(),
+                        )
+                        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+                        await user.send(embed=embed)
+                    except Exception as dm_err:
+                        print(f"ℹ️ Could not DM user {discord_id} about their Lucky Wheel win: {dm_err}")
+
+                    print(f"🎡 Lucky Wheel: {discord_id} won {amount} coins (jackpot={is_jackpot})")
+
+            except Exception as e:
+                print(f"⚠️ Spin sync error: {e}")
+
+            await asyncio.sleep(SHOP_SYNC_INTERVAL)
+
+
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
 @client.event
 async def on_message(message: discord.Message):
@@ -1907,6 +1965,7 @@ async def on_ready():
     if not getattr(client, "_shop_sync_started", False):
         client._shop_sync_started = True
         asyncio.create_task(sync_shop_purchases())
+        asyncio.create_task(sync_shop_spins())
 
     print(f"✅ Bot online as {client.user} — {len(loaded)} giveaway(s) restored from DB")
 
