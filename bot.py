@@ -1926,6 +1926,63 @@ async def sync_shop_spins():
             await asyncio.sleep(SHOP_SYNC_INTERVAL)
 
 
+async def sync_shop_redemptions():
+    """Background loop: periodically pulls reward-code redemptions that haven't
+    been DMed yet, and sends the player a confirmation of their free Coins."""
+    await client.wait_until_ready()
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        print("⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — promo redemption DM sync is disabled.")
+        return
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+
+    async with aiohttp.ClientSession() as session:
+        while not client.is_closed():
+            try:
+                async with session.get(f"{SHOP_API_URL}/api/bot/pending-redemptions", headers=headers, timeout=10) as resp:
+                    if resp.status != 200:
+                        print(f"⚠️ Redemption sync: unexpected status {resp.status}")
+                        await asyncio.sleep(SHOP_SYNC_INTERVAL)
+                        continue
+                    redemptions = await resp.json()
+
+                for redemption in redemptions:
+                    discord_id = redemption["discord_id"]
+                    amount = redemption["amount"]
+                    code = redemption["code"]
+
+                    # Mark as notified first (idempotency > notification delivery)
+                    async with session.post(
+                        f"{SHOP_API_URL}/api/bot/mark-redemption-notified/{redemption['id']}",
+                        headers=headers,
+                        timeout=10,
+                    ):
+                        pass
+
+                    try:
+                        user = await client.fetch_user(int(discord_id))
+                        embed = discord.Embed(
+                            title="🎟️ Promo Code Redeemed!",
+                            description=(
+                                f"Congratulations, code **{code}** has credited you **{amount:,} Primal Coins**!\n\n"
+                                "Check your balance in the Shop or with `/balance`."
+                            ),
+                            color=discord.Color.green(),
+                        )
+                        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+                        await user.send(embed=embed)
+                    except Exception as dm_err:
+                        print(f"ℹ️ Could not DM user {discord_id} about their promo redemption: {dm_err}")
+
+                    print(f"🎟️ Promo redeemed: {discord_id} used {code} for {amount} coins")
+
+            except Exception as e:
+                print(f"⚠️ Redemption sync error: {e}")
+
+            await asyncio.sleep(SHOP_SYNC_INTERVAL)
+
+
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
 @client.event
 async def on_message(message: discord.Message):
@@ -2005,6 +2062,7 @@ async def on_ready():
         client._shop_sync_started = True
         asyncio.create_task(sync_shop_purchases())
         asyncio.create_task(sync_shop_spins())
+        asyncio.create_task(sync_shop_redemptions())
 
     print(f"✅ Bot online as {client.user} — {len(loaded)} giveaway(s) restored from DB")
 
