@@ -1734,6 +1734,15 @@ async def post_vip_embed_command(interaction: discord.Interaction, channel: disc
     embed.add_field(name="👑 VIP Role", value="Exclusive\nserver role", inline=True)
     embed.add_field(name="🎉 VIP Giveaways", value="Access to\nVIP-only draws", inline=True)
     embed.add_field(
+        name="🎡 VIP Lucky Wheel",
+        value=(
+            "VIPs get their own daily spin on a second wheel with **doubled prizes** "
+            "— up to a **5,000 Coin jackpot** — on top of the regular Lucky Wheel. "
+            "Find it right below the normal wheel on the Shop's Home tab."
+        ),
+        inline=False,
+    )
+    embed.add_field(
         name="📌 Things To Know",
         value=(
             "**·** VIP perks are removed automatically once your Boost expires or is cancelled\n"
