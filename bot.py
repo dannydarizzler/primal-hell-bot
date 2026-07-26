@@ -778,7 +778,9 @@ EVENT_CUSTOM_ROLES = ["Admin", "Owner"]  # only these roles can post custom even
 @app_commands.describe(
     title="The event's title, e.g. 'Double XP Weekend'",
     info="Details about the event — rules, dates, how to join, rewards, etc.",
-    duration_hours="How many hours should the event run? e.g. 5, or 0.5 for 30 minutes",
+    how_it_works="Optional: explain how the event works / how to participate",
+    hours="How many hours should the event run? e.g. 16",
+    minutes="Extra minutes on top of the hours (optional), e.g. 30",
     prize="Optional: what can players win? e.g. '2,000 Primal Coins' or a Nightmare Breedpair",
     image1="Optional image to attach (e.g. a banner or screenshot)",
     image2="Optional second image",
@@ -788,7 +790,9 @@ async def event_custom_command(
     interaction: discord.Interaction,
     title: str,
     info: str,
-    duration_hours: float,
+    hours: app_commands.Range[int, 0, 720],
+    minutes: app_commands.Range[int, 0, 59] = 0,
+    how_it_works: str = None,
     prize: str = None,
     image1: discord.Attachment = None,
     image2: discord.Attachment = None,
@@ -800,8 +804,9 @@ async def event_custom_command(
         await interaction.response.send_message(f"❌ Only **{roles_text}** can post custom events.", ephemeral=True)
         return
 
-    if duration_hours <= 0:
-        await interaction.response.send_message("❌ Duration must be a positive number of hours.", ephemeral=True)
+    total_seconds = hours * 3600 + minutes * 60
+    if total_seconds <= 0:
+        await interaction.response.send_message("❌ Duration must be more than 0 minutes (set hours and/or minutes).", ephemeral=True)
         return
 
     events_ch = discord.utils.get(interaction.guild.channels, name="🎉｜events")
@@ -810,10 +815,12 @@ async def event_custom_command(
         return
 
     images = [img for img in (image1, image2, image3) if img is not None]
-    end_time = time.time() + duration_hours * 3600
+    end_time = time.time() + total_seconds
     end_ts = int(end_time)
 
     description = f"**{title}**\n\n{info}\n\n"
+    if how_it_works:
+        description += f"⚙️ **How does it work:**\n{how_it_works}\n\n"
     if prize:
         description += f"🎁 **Prize:** {prize}\n\n"
     description += f"⏰ Ends: <t:{end_ts}:R> (<t:{end_ts}:f>)"
@@ -834,9 +841,13 @@ async def event_custom_command(
         embeds.append(discord.Embed(color=discord.Color.gold()).set_image(url=extra_img.url))
 
     msg = await events_ch.send(content="@everyone", embeds=embeds)
-    await interaction.response.send_message(f"✅ Event posted in {events_ch.mention}. Ends <t:{end_ts}:R>.", ephemeral=True)
+    duration_text = f"{hours}h {minutes}m" if minutes else f"{hours}h"
+    await interaction.response.send_message(
+        f"✅ Event posted in {events_ch.mention}. Duration: **{duration_text}** — ends <t:{end_ts}:R>.",
+        ephemeral=True,
+    )
 
-    asyncio.create_task(end_custom_event_after(msg, main_embed, duration_hours * 3600))
+    asyncio.create_task(end_custom_event_after(msg, main_embed, total_seconds))
 
 
 async def end_custom_event_after(message: discord.Message, embed: discord.Embed, delay_seconds: float):
