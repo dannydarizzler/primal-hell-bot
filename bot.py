@@ -779,6 +779,7 @@ EVENT_CUSTOM_ROLES = ["Admin", "Owner"]  # only these roles can post custom even
     title="The event's title, e.g. 'Double XP Weekend'",
     info="Details about the event — rules, dates, how to join, rewards, etc.",
     duration_hours="How many hours should the event run? e.g. 5, or 0.5 for 30 minutes",
+    prize="Optional: what can players win? e.g. '2,000 Primal Coins' or a Nightmare Breedpair",
     image1="Optional image to attach (e.g. a banner or screenshot)",
     image2="Optional second image",
     image3="Optional third image",
@@ -788,6 +789,7 @@ async def event_custom_command(
     title: str,
     info: str,
     duration_hours: float,
+    prize: str = None,
     image1: discord.Attachment = None,
     image2: discord.Attachment = None,
     image3: discord.Attachment = None,
@@ -811,12 +813,14 @@ async def event_custom_command(
     end_time = time.time() + duration_hours * 3600
     end_ts = int(end_time)
 
+    description = f"**{title}**\n\n{info}\n\n"
+    if prize:
+        description += f"🎁 **Prize:** {prize}\n\n"
+    description += f"⏰ Ends: <t:{end_ts}:R> (<t:{end_ts}:f>)"
+
     main_embed = discord.Embed(
         title="🎉 New Event!",
-        description=(
-            f"**{title}**\n\n{info}\n\n"
-            f"⏰ Ends: <t:{end_ts}:R> (<t:{end_ts}:f>)"
-        ),
+        description=description,
         color=discord.Color.gold(),
     )
     if images:
