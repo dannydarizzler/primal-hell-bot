@@ -777,6 +777,62 @@ async def start_guess_event(interaction: discord.Interaction, range_max: int, re
     )
 
 
+# ── /event-custom ─────────────────────────────────────────────────────────────
+EVENT_CUSTOM_ROLES = ["Admin", "Owner"]  # only these roles can post custom events
+
+
+@tree.command(name="event-custom", description="[Admin only] Post a custom event announcement in #events")
+@app_commands.describe(
+    title="The event's title, e.g. 'Double XP Weekend'",
+    info="Details about the event — rules, dates, how to join, rewards, etc.",
+    image1="Optional image to attach (e.g. a banner or screenshot)",
+    image2="Optional second image",
+    image3="Optional third image",
+    ping_everyone="Ping @everyone? Defaults to yes.",
+)
+async def event_custom_command(
+    interaction: discord.Interaction,
+    title: str,
+    info: str,
+    image1: discord.Attachment = None,
+    image2: discord.Attachment = None,
+    image3: discord.Attachment = None,
+    ping_everyone: bool = True,
+):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(EVENT_CUSTOM_ROLES):
+        roles_text = " / ".join(EVENT_CUSTOM_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can post custom events.", ephemeral=True)
+        return
+
+    events_ch = discord.utils.get(interaction.guild.channels, name="🎉｜events")
+    if events_ch is None:
+        await interaction.response.send_message("❌ Could not find the **🎉｜events** channel.", ephemeral=True)
+        return
+
+    images = [img for img in (image1, image2, image3) if img is not None]
+
+    main_embed = discord.Embed(
+        title="🎉 New Event!",
+        description=f"**{title}**\n\n{info}",
+        color=discord.Color.gold(),
+    )
+    if images:
+        main_embed.set_image(url=images[0].url)
+    main_embed.set_footer(text=f"Hosted by {interaction.user.display_name} • Primal Hell")
+
+    embeds = [main_embed]
+    # Discord embeds only support one large image each — extra images become
+    # additional embeds on the same message so they all show up together.
+    for extra_img in images[1:]:
+        embeds.append(discord.Embed(color=discord.Color.gold()).set_image(url=extra_img.url))
+
+    content = "@everyone" if ping_everyone else None
+    await events_ch.send(content=content, embeds=embeds)
+
+    await interaction.response.send_message(f"✅ Event posted in {events_ch.mention}.", ephemeral=True)
+
+
 # ── /event-100-5 ────────────────────────────────────────────────────────────────
 @tree.command(name="event-100-5", description="[Admin only] Start a 1-100 guessing giveaway — 5€ Shop Credit reward")
 async def event_100_5_command(interaction: discord.Interaction):
