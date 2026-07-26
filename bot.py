@@ -1442,6 +1442,45 @@ async def redeem_item_command(interaction: discord.Interaction, item_id: int):
     )
 
 
+# ── /fix-discord-id ──────────────────────────────────────────────────────────────
+@tree.command(name="fix-discord-id", description="[Admin only] Move a shop account from a wrong Discord ID to the correct one")
+@app_commands.describe(
+    old_id="The wrong Discord ID currently on the account (as shown/typed by the player)",
+    new_id="The player's correct Discord ID",
+)
+async def fix_discord_id_command(interaction: discord.Interaction, old_id: str, new_id: str):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(ADMIN_ITEM_ROLES):
+        roles_text = " / ".join(ADMIN_ITEM_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can fix account IDs.", ephemeral=True)
+        return
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    body = {"oldDiscordId": old_id, "newDiscordId": new_id}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{SHOP_API_URL}/api/admin/migrate-discord-id", headers=headers, json=body, timeout=10) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    await interaction.followup.send(f"❌ {data.get('error', 'Could not migrate the account.')}", ephemeral=True)
+                    return
+    except Exception as e:
+        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
+        return
+
+    await interaction.followup.send(
+        f"✅ Account moved from `{old_id}` to <@{new_id}>. "
+        f"Balance, purchases, and item history were all preserved — new balance: **{data['newBalance']:,} Primal Coins**.",
+        ephemeral=True,
+    )
+
+
 # ── /create-promo & /list-promos ────────────────────────────────────────────────
 PROMO_ADMIN_ROLES = ["Admin", "Owner"]  # only these roles can create/view promo codes
 
