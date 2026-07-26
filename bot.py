@@ -711,13 +711,6 @@ async def wipe_command(interaction: discord.Interaction):
 # ── Active Giveaway State ─────────────────────────────────────────────────────
 active_giveaway = {}   # guild_id → {"number", "guess_channel_id", "announce_channel_id", "range_max", "reward"}
 
-# ── Event Configs — add new tiers here if needed ───────────────────────────────
-EVENT_CONFIGS = {
-    "100":  {"range_max": 100,  "reward": "5€"},
-    "500":  {"range_max": 500,  "reward": "10€"},
-    "1000": {"range_max": 1000, "reward": "20€"},
-}
-
 
 # ── Generic Event Starter (shared logic for all guessing giveaways) ───────────
 async def start_guess_event(interaction: discord.Interaction, range_max: int, reward: str):
@@ -761,7 +754,7 @@ async def start_guess_event(interaction: discord.Interaction, range_max: int, re
         description=(
             "A giveaway is now live in the **Global Chat**!\n\n"
             f"Guess a number between **1 and {range_max}**.\n"
-            f"The first player to guess the correct number wins **{reward} Shop Credit**! 🎁\n\n"
+            f"The first player to guess the correct number wins **{reward}**! 🎁\n\n"
             "Type your guess directly in this channel. Good luck! 🍀"
         ),
         color=discord.Color.gold(),
@@ -785,24 +778,28 @@ EVENT_CUSTOM_ROLES = ["Admin", "Owner"]  # only these roles can post custom even
 @app_commands.describe(
     title="The event's title, e.g. 'Double XP Weekend'",
     info="Details about the event — rules, dates, how to join, rewards, etc.",
+    duration_hours="How many hours should the event run? e.g. 5, or 0.5 for 30 minutes",
     image1="Optional image to attach (e.g. a banner or screenshot)",
     image2="Optional second image",
     image3="Optional third image",
-    ping_everyone="Ping @everyone? Defaults to yes.",
 )
 async def event_custom_command(
     interaction: discord.Interaction,
     title: str,
     info: str,
+    duration_hours: float,
     image1: discord.Attachment = None,
     image2: discord.Attachment = None,
     image3: discord.Attachment = None,
-    ping_everyone: bool = True,
 ):
     user_role_names = {role.name for role in interaction.user.roles}
     if not user_role_names.intersection(EVENT_CUSTOM_ROLES):
         roles_text = " / ".join(EVENT_CUSTOM_ROLES)
         await interaction.response.send_message(f"❌ Only **{roles_text}** can post custom events.", ephemeral=True)
+        return
+
+    if duration_hours <= 0:
+        await interaction.response.send_message("❌ Duration must be a positive number of hours.", ephemeral=True)
         return
 
     events_ch = discord.utils.get(interaction.guild.channels, name="🎉｜events")
@@ -811,10 +808,15 @@ async def event_custom_command(
         return
 
     images = [img for img in (image1, image2, image3) if img is not None]
+    end_time = time.time() + duration_hours * 3600
+    end_ts = int(end_time)
 
     main_embed = discord.Embed(
         title="🎉 New Event!",
-        description=f"**{title}**\n\n{info}",
+        description=(
+            f"**{title}**\n\n{info}\n\n"
+            f"⏰ Ends: <t:{end_ts}:R> (<t:{end_ts}:f>)"
+        ),
         color=discord.Color.gold(),
     )
     if images:
@@ -827,31 +829,46 @@ async def event_custom_command(
     for extra_img in images[1:]:
         embeds.append(discord.Embed(color=discord.Color.gold()).set_image(url=extra_img.url))
 
-    content = "@everyone" if ping_everyone else None
-    await events_ch.send(content=content, embeds=embeds)
+    msg = await events_ch.send(content="@everyone", embeds=embeds)
+    await interaction.response.send_message(f"✅ Event posted in {events_ch.mention}. Ends <t:{end_ts}:R>.", ephemeral=True)
 
-    await interaction.response.send_message(f"✅ Event posted in {events_ch.mention}.", ephemeral=True)
-
-
-# ── /event-100-5 ────────────────────────────────────────────────────────────────
-@tree.command(name="event-100-5", description="[Admin only] Start a 1-100 guessing giveaway — 5€ Shop Credit reward")
-async def event_100_5_command(interaction: discord.Interaction):
-    cfg = EVENT_CONFIGS["100"]
-    await start_guess_event(interaction, cfg["range_max"], cfg["reward"])
+    asyncio.create_task(end_custom_event_after(msg, main_embed, duration_hours * 3600))
 
 
-# ── /event-500-10 ───────────────────────────────────────────────────────────────
-@tree.command(name="event-500-10", description="[Admin only] Start a 1-500 guessing giveaway — 10€ Shop Credit reward")
-async def event_500_10_command(interaction: discord.Interaction):
-    cfg = EVENT_CONFIGS["500"]
-    await start_guess_event(interaction, cfg["range_max"], cfg["reward"])
+async def end_custom_event_after(message: discord.Message, embed: discord.Embed, delay_seconds: float):
+    """Marks a custom event as ended once its duration passes (best-effort —
+    if the bot restarts before then, the event just won't get this final edit,
+    but the countdown timestamp in the original message still displays correctly
+    for everyone regardless, since Discord renders it client-side)."""
+    await asyncio.sleep(delay_seconds)
+    ended_embed = embed.copy()
+    ended_embed.title = "🎉 Event Ended"
+    ended_embed.color = discord.Color.dark_grey()
+    try:
+        await message.edit(embeds=[ended_embed] + message.embeds[1:])
+    except discord.HTTPException:
+        pass
 
 
-# ── /event-1000-20 ──────────────────────────────────────────────────────────────
-@tree.command(name="event-1000-20", description="[Admin only] Start a 1-1000 guessing giveaway — 20€ Shop Credit reward")
-async def event_1000_20_command(interaction: discord.Interaction):
-    cfg = EVENT_CONFIGS["1000"]
-    await start_guess_event(interaction, cfg["range_max"], cfg["reward"])
+# ── /event-100 ────────────────────────────────────────────────────────────────────
+@tree.command(name="event-100", description="[Admin only] Start a 1-100 guessing giveaway with a custom prize")
+@app_commands.describe(prize="What does the winner get? e.g. '500 Primal Coins' or a Nightmare Breedpair")
+async def event_100_command(interaction: discord.Interaction, prize: str):
+    await start_guess_event(interaction, 100, prize)
+
+
+# ── /event-500 ────────────────────────────────────────────────────────────────────
+@tree.command(name="event-500", description="[Admin only] Start a 1-500 guessing giveaway with a custom prize")
+@app_commands.describe(prize="What does the winner get? e.g. '1,000 Primal Coins' or an Origin Token")
+async def event_500_command(interaction: discord.Interaction, prize: str):
+    await start_guess_event(interaction, 500, prize)
+
+
+# ── /event-1000 ───────────────────────────────────────────────────────────────────
+@tree.command(name="event-1000", description="[Admin only] Start a 1-1000 guessing giveaway with a custom prize")
+@app_commands.describe(prize="What does the winner get? e.g. '2,000 Primal Coins' or Instant Ascension")
+async def event_1000_command(interaction: discord.Interaction, prize: str):
+    await start_guess_event(interaction, 1000, prize)
 
 
 # ── Giveaway System ─────────────────────────────────────────────────────────────
@@ -1843,7 +1860,7 @@ async def admin_commands_command(interaction: discord.Interaction):
         value=(
             "`/giveaway-start` — Start a giveaway in #giveaways\n"
             "`/vip-giveaway-start` — Start a giveaway in #vip-giveaways\n"
-            "`/event-100-5` / `/event-500-10` / `/event-1000-20` — Number-guess giveaways in Global Chat\n"
+            "`/event-100` / `/event-500` / `/event-1000` — Number-guess giveaways with a custom prize\n"
             "`/poll` — Create a poll in #polls"
         ),
         inline=False,
@@ -2222,7 +2239,7 @@ async def on_message(message: discord.Message):
                     description=(
                         f"Congratulations {message.author.mention}! 🏆\n\n"
                         f"The correct number was **{guess}**!\n"
-                        f"You won **{reward} Shop Credit**! 🎁\n"
+                        f"You won **{reward}**! 🎁\n"
                         "Please open a ticket in **#ticket-system** to claim your reward!"
                     ),
                     color=discord.Color.green(),
