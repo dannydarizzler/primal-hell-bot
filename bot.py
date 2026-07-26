@@ -1909,7 +1909,7 @@ async def admin_commands_command(interaction: discord.Interaction):
 async def whoami_command(interaction: discord.Interaction):
     embed = discord.Embed(
         title="🪪 Your Discord User ID",
-        description=f"`{interaction.user.id}`\n\nUse this when creating your account on the [Primal Hell Shop]({SHOP_PUBLIC_URL}).",
+        description=f"`{interaction.user.id}`\n\nUse this ID when creating your account on the [Primal Hell Shop]({SHOP_PUBLIC_URL}).",
         color=discord.Color.orange(),
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
