@@ -14,6 +14,7 @@ import aiohttp
 # ── Bot Setup ──────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True  # required for on_member_update (VIP role auto-sync) and role.members
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
@@ -25,6 +26,7 @@ GIVEAWAY_ROLES      = ["Admin", "Owner"]   # only these roles can start giveaway
 GIVEAWAY_CHANNEL    = "🎁｜giveaways"        # giveaways always post here
 VIP_GIVEAWAY_CHANNEL = "💎｜vip-giveaways"    # VIP-only giveaways always post here
 POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
+VIP_ROLE_NAME       = "VIP"                 # role granted by boosting — auto-syncs to the shop
 POLLS_CHANNEL       = "📊｜polls"            # polls always post here
 
 # ── ARK Server Status (RCON) ────────────────────────────────────────────────
@@ -1481,6 +1483,43 @@ async def fix_discord_id_command(interaction: discord.Interaction, old_id: str, 
     )
 
 
+# ── /set-vip ──────────────────────────────────────────────────────────────────
+@tree.command(name="set-vip", description="[Admin only] Give or remove VIP status on a player's shop account")
+@app_commands.describe(player="The player to update", vip="Turn VIP status on or off")
+@app_commands.choices(vip=[
+    app_commands.Choice(name="On — grant VIP", value="on"),
+    app_commands.Choice(name="Off — remove VIP", value="off"),
+])
+async def set_vip_command(interaction: discord.Interaction, player: discord.Member, vip: app_commands.Choice[str]):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(ADMIN_ITEM_ROLES):
+        roles_text = " / ".join(ADMIN_ITEM_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can set VIP status.", ephemeral=True)
+        return
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    body = {"discordId": str(player.id), "isVip": vip.value == "on"}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(f"{SHOP_API_URL}/api/admin/set-vip", headers=headers, json=body, timeout=10) as resp:
+                data = await resp.json()
+                if resp.status != 200:
+                    await interaction.followup.send(f"❌ {data.get('error', 'Could not update VIP status.')}", ephemeral=True)
+                    return
+    except Exception as e:
+        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
+        return
+
+    status_text = "granted ✅" if vip.value == "on" else "removed"
+    await interaction.followup.send(f"💎 VIP status for {player.mention} has been **{status_text}**.", ephemeral=True)
+
+
 # ── /create-promo & /list-promos ────────────────────────────────────────────────
 PROMO_ADMIN_ROLES = ["Admin", "Owner"]  # only these roles can create/view promo codes
 
@@ -1983,6 +2022,111 @@ async def sync_shop_redemptions():
             await asyncio.sleep(SHOP_SYNC_INTERVAL)
 
 
+async def sync_shop_vip_spins():
+    """Background loop: same as sync_shop_spins, but for the VIP Lucky Wheel."""
+    await client.wait_until_ready()
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        print("⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — VIP Lucky Wheel DM sync is disabled.")
+        return
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+
+    async with aiohttp.ClientSession() as session:
+        while not client.is_closed():
+            try:
+                async with session.get(f"{SHOP_API_URL}/api/bot/pending-vip-spins", headers=headers, timeout=10) as resp:
+                    if resp.status != 200:
+                        print(f"⚠️ VIP spin sync: unexpected status {resp.status}")
+                        await asyncio.sleep(SHOP_SYNC_INTERVAL)
+                        continue
+                    spins = await resp.json()
+
+                for spin in spins:
+                    discord_id = spin["discord_id"]
+                    amount = spin["amount"]
+                    is_jackpot = bool(spin["jackpot"])
+
+                    async with session.post(
+                        f"{SHOP_API_URL}/api/bot/mark-vip-spin-notified/{spin['id']}",
+                        headers=headers,
+                        timeout=10,
+                    ):
+                        pass
+
+                    try:
+                        user = await client.fetch_user(int(discord_id))
+                        title = "🎉 VIP JACKPOT!" if is_jackpot else "💎 VIP Lucky Wheel Win!"
+                        embed = discord.Embed(
+                            title=title,
+                            description=(
+                                f"Congratulations, you have won **{amount:,} Primal Coins** on the VIP Lucky Wheel!\n\n"
+                                "Spin again in 24 hours."
+                            ),
+                            color=discord.Color.purple(),
+                        )
+                        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+                        await user.send(embed=embed)
+                    except Exception as dm_err:
+                        print(f"ℹ️ Could not DM user {discord_id} about their VIP Lucky Wheel win: {dm_err}")
+
+                    print(f"💎 VIP Lucky Wheel: {discord_id} won {amount} coins (jackpot={is_jackpot})")
+
+            except Exception as e:
+                print(f"⚠️ VIP spin sync error: {e}")
+
+            await asyncio.sleep(SHOP_SYNC_INTERVAL)
+
+
+async def push_vip_status_to_shop(discord_id: str, is_vip: bool):
+    """Tells the shop to set/unset a player's VIP flag. Silently ignores players
+    who don't have a shop account yet (they'll get VIP once they sign up and an
+    admin re-syncs, or next time their role changes)."""
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        return
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{SHOP_API_URL}/api/admin/set-vip",
+                headers=headers,
+                json={"discordId": discord_id, "isVip": is_vip},
+                timeout=10,
+            ) as resp:
+                if resp.status == 200:
+                    print(f"💎 Synced VIP={is_vip} for {discord_id} (role change)")
+                elif resp.status != 404:  # 404 = no shop account yet, not an error
+                    print(f"⚠️ Could not sync VIP status for {discord_id}: status {resp.status}")
+    except Exception as e:
+        print(f"⚠️ Could not sync VIP status for {discord_id}: {e}")
+
+
+@client.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+    """Automatically grants/removes shop VIP status the moment someone's VIP
+    role changes (typically from boosting/un-boosting the server)."""
+    had_role = any(r.name == VIP_ROLE_NAME for r in before.roles)
+    has_role = any(r.name == VIP_ROLE_NAME for r in after.roles)
+    if had_role == has_role:
+        return  # no change to the VIP role specifically
+
+    await push_vip_status_to_shop(str(after.id), has_role)
+
+
+async def sync_vip_roles_on_startup():
+    """One-time catch-up on bot startup: makes sure everyone currently holding
+    the VIP role is flagged as VIP in the shop, in case a boost happened while
+    the bot was offline. Does not remove VIP from anyone (that's handled live
+    by on_member_update going forward)."""
+    await client.wait_until_ready()
+    for guild in client.guilds:
+        role = discord.utils.get(guild.roles, name=VIP_ROLE_NAME)
+        if not role:
+            continue
+        for member in role.members:
+            await push_vip_status_to_shop(str(member.id), True)
+
+
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
 @client.event
 async def on_message(message: discord.Message):
@@ -2063,6 +2207,8 @@ async def on_ready():
         asyncio.create_task(sync_shop_purchases())
         asyncio.create_task(sync_shop_spins())
         asyncio.create_task(sync_shop_redemptions())
+        asyncio.create_task(sync_shop_vip_spins())
+        asyncio.create_task(sync_vip_roles_on_startup())
 
     print(f"✅ Bot online as {client.user} — {len(loaded)} giveaway(s) restored from DB")
 
