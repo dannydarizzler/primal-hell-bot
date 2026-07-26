@@ -28,7 +28,6 @@ VIP_GIVEAWAY_CHANNEL = "💎｜vip-giveaways"    # VIP-only giveaways always pos
 POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
 VIP_ROLE_NAME       = "VIP"                 # role granted by boosting — auto-syncs to the shop
 POLLS_CHANNEL       = "📊｜polls"            # polls always post here
-TICKET_CHANNEL      = "🎟️｜ticket-system"    # forum: new post = new ticket
 
 # ── ARK Server Status (RCON) ────────────────────────────────────────────────
 ARK_HOST          = os.environ.get("ARK_HOST", "31.214.216.227")
@@ -224,7 +223,10 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="💰 Coins",
-        value="`/balance` — Check your Primal Coins balance",
+        value=(
+            "`/balance` — Check your Primal Coins balance\n"
+            "`/whoami` — Get your Discord User ID (for Shop sign-up)"
+        ),
         inline=False,
     )
     embed.add_field(
@@ -1901,6 +1903,18 @@ async def admin_commands_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+# ── /whoami ──────────────────────────────────────────────────────────────────
+@tree.command(name="whoami", description="Get your Discord User ID (needed to sign up on the Shop)")
+async def whoami_command(interaction: discord.Interaction):
+    embed = discord.Embed(
+        title="🪪 Your Discord User ID",
+        description=f"`{interaction.user.id}`\n\nUse this when creating your account on the [Primal Hell Shop]({SHOP_PUBLIC_URL}).",
+        color=discord.Color.orange(),
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 # ── /balance ───────────────────────────────────────────────────────────────────
 @tree.command(name="balance", description="Check your Primal Hell Coins balance")
 async def balance_command(interaction: discord.Interaction):
@@ -2263,22 +2277,6 @@ async def on_message(message: discord.Message):
                 embed.set_footer(text="Primal Hell • ARK Survival Ascended")
                 if announce_ch:
                     await announce_ch.send(content="@everyone", embed=embed)
-
-
-# ── Ticket auto-response ─────────────────────────────────────────────────────────
-@client.event
-async def on_thread_create(thread: discord.Thread):
-    if thread.parent and thread.parent.name == TICKET_CHANNEL:
-        embed = discord.Embed(
-            title="🎟️ Thank you for opening a ticket!",
-            description=(
-                "A staff member will be with you shortly.\n\n"
-                "Please describe your request in detail so we can help you as quickly as possible."
-            ),
-            color=discord.Color.green(),
-        )
-        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-        await thread.send(embed=embed)
 
 
 # ── Deleting a giveaway message cancels it ─────────────────────────────────────
