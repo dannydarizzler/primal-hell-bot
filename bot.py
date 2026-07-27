@@ -29,7 +29,6 @@ POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
 VIP_ROLE_NAME       = "VIP"                 # role granted by boosting — auto-syncs to the shop
 POLLS_CHANNEL       = "📊｜polls"            # polls always post here
 TICKET_CHANNEL      = "🎟️｜ticket-system"    # forum: new post = new ticket
-TICKET_CATEGORY     = "🎫 ══════ Support ══════"  # category where ticket channels are created
 
 # ── ARK Server Status (RCON) ────────────────────────────────────────────────
 ARK_HOST          = os.environ.get("ARK_HOST", "31.214.216.227")
@@ -2283,9 +2282,8 @@ async def on_message(message: discord.Message):
 
 # ── Ticket auto-response ─────────────────────────────────────────────────────────
 @client.event
-async def on_guild_channel_create(channel: discord.abc.GuildChannel):
-    if channel.category and channel.category.name == TICKET_CATEGORY:
-        await asyncio.sleep(1)  # kurz warten, bis der Channel bereit ist
+async def on_thread_create(thread: discord.Thread):
+    if thread.parent and thread.parent.name == TICKET_CHANNEL:
         embed = discord.Embed(
             title="🎟️ Thank you for opening a ticket!",
             description=(
@@ -2295,7 +2293,7 @@ async def on_guild_channel_create(channel: discord.abc.GuildChannel):
             color=discord.Color.green(),
         )
         embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-        await channel.send(embed=embed)
+        await thread.send(embed=embed)
 
 
 # ── Deleting a giveaway message cancels it ─────────────────────────────────────
