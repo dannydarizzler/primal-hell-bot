@@ -2450,6 +2450,58 @@ async def on_message(message: discord.Message):
             except Exception:
                 pass
 
+    # ── Tier progression (message count → role + promo code DM) ──
+    if not message.author.bot and message.guild:
+        try:
+            uid = str(message.author.id)
+            new_count = db_increment_message_count(uid)
+
+            for tier_name, threshold, coins in TIER_ROLES:
+                if new_count == threshold:
+                    role = discord.utils.get(message.guild.roles, name=tier_name)
+                    if role and role not in message.author.roles:
+                        # Remove lower tier roles
+                        lower_tiers = [r for r in message.author.roles if any(r.name == t[0] for t in TIER_ROLES)]
+                        for r in lower_tiers:
+                            try:
+                                await message.author.remove_roles(r)
+                            except Exception:
+                                pass
+                        # Add new tier role
+                        try:
+                            await message.author.add_roles(role)
+                        except Exception:
+                            pass
+
+                    # Create promo code and DM
+                    chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+                    code = f"PH-{tier_name.upper()}-{''.join(random.choices(chars, k=6))}"
+                    if SHOP_API_URL and BOT_SYNC_SECRET:
+                        headers = {"x-bot-secret": BOT_SYNC_SECRET}
+                        body = {"code": code, "type": "reward", "rewardCoins": coins, "maxUses": 1, "createdBy": uid}
+                        try:
+                            async with aiohttp.ClientSession() as session:
+                                async with session.post(f"{SHOP_API_URL}/api/admin/promo", headers=headers, json=body, timeout=10) as resp:
+                                    if resp.status == 200:
+                                        dm_embed = discord.Embed(
+                                            title="🎉 Tier Unlocked!",
+                                            description=(
+                                                f"You reached the **{tier_name}** tier!\n\n"
+                                                f"Your Primal Coin code ({coins} coins): `{code}`\n\n"
+                                                f"Redeem at: {SHOP_PUBLIC_URL}"
+                                            ),
+                                            color=discord.Color.gold(),
+                                        )
+                                        dm_embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+                                        try:
+                                            await message.author.send(embed=dm_embed)
+                                        except Exception:
+                                            pass
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+
     # Giveaway guess detection
     if not message.author.bot and message.guild:
         giveaway = active_giveaway.get(message.guild.id)
