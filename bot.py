@@ -18,13 +18,9 @@ intents.members = True  # required for on_member_update (VIP role auto-sync) and
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-# Guild ID for instant command sync (set GUILD_ID env var)
-GUILD_ID = os.environ.get("GUILD_ID")
-if GUILD_ID:
-    GUILD_ID = int(GUILD_ID)
-    SYNC_GUILD = discord.Object(id=GUILD_ID)
-else:
-    SYNC_GUILD = None
+# Guild ID for instant command sync — replace with your server ID
+GUILD_ID = 123456789012345678  # <-- put your Guild ID here
+SYNC_GUILD = discord.Object(id=GUILD_ID)
 
 SUGGESTIONS_CHANNEL  = "❓｜suggestions"
 SERVER_CHANGES_CH    = "🔧｜server-changes"
