@@ -19,7 +19,7 @@ client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 # Guild ID for instant command sync — replace with your server ID
-GUILD_ID = 123456789012345678  # <-- put your Guild ID here
+GUILD_ID = 1516129856944079022
 SYNC_GUILD = discord.Object(id=GUILD_ID)
 
 SUGGESTIONS_CHANNEL  = "❓｜suggestions"
