@@ -2025,6 +2025,51 @@ async def whoami_command(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+# ── /message-count ────────────────────────────────────────────────────────────────
+@tree.command(name="message-count", description="Check your or another user's message count")
+@app_commands.describe(user="User to check (default: yourself)")
+async def message_count_command(interaction: discord.Interaction, user: discord.Member = None):
+    target = user or interaction.user
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute("SELECT count FROM message_counts WHERE discord_id = ?", (str(target.id),)).fetchone()
+    conn.close()
+    count = row[0] if row else 0
+
+    embed = discord.Embed(
+        title="💬 Message Count",
+        description=f"{target.mention} has sent **{count:,}** messages.",
+        color=discord.Color.blue(),
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# ── /message-leaderboard ──────────────────────────────────────────────────────────
+@tree.command(name="message-leaderboard", description="Show top 10 users by message count")
+async def message_leaderboard_command(interaction: discord.Interaction):
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute("SELECT discord_id, count FROM message_counts ORDER BY count DESC LIMIT 10").fetchall()
+    conn.close()
+
+    if not rows:
+        await interaction.response.send_message("No message data yet.", ephemeral=True)
+        return
+
+    lines = []
+    for i, (discord_id, count) in enumerate(rows, 1):
+        member = interaction.guild.get_member(int(discord_id))
+        name = member.display_name if member else f"Unknown ({discord_id})"
+        lines.append(f"**{i}.** {name} — **{count:,}**")
+
+    embed = discord.Embed(
+        title="📊 Message Leaderboard (Top 10)",
+        description="\n".join(lines),
+        color=discord.Color.gold(),
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed)
+
+
 # ── /balance ───────────────────────────────────────────────────────────────────
 @tree.command(name="balance", description="Check your Primal Hell Coins balance")
 async def balance_command(interaction: discord.Interaction):
