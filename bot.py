@@ -2352,6 +2352,22 @@ async def on_message(message: discord.Message):
                 except Exception:
                     return
             await message.channel.send(f"PH_PROMO_OK|tier={tier}|amount={amount}|code={code}|discord={discord_id}")
+            try:
+                user = await client.fetch_user(int(discord_id))
+                tier_label = tier.capitalize()
+                dm_embed = discord.Embed(
+                    title=f"🎉 Tier Unlocked!",
+                    description=(
+                        f"You reached the **{tier_label}** tier!\n\n"
+                        f"Your Primal Coin code ({amount} coins): `{code}`\n\n"
+                        f"Redeem at: {SHOP_PUBLIC_URL}"
+                    ),
+                    color=discord.Color.gold(),
+                )
+                dm_embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+                await user.send(embed=dm_embed)
+            except Exception:
+                pass
 
     # Giveaway guess detection
     if not message.author.bot and message.guild:
@@ -2442,3 +2458,4 @@ async def on_ready():
     print(f"✅ Bot online as {client.user} — {len(loaded)} giveaway(s) restored from DB")
 
 client.run(os.environ["DISCORD_TOKEN"])
+
