@@ -1848,6 +1848,81 @@ async def post_vip_embed_command(interaction: discord.Interaction, channel: disc
     await interaction.response.send_message(f"✅ VIP embed posted in {channel.mention}.", ephemeral=True)
 
 
+# ── /post-server-rules ────────────────────────────────────────────────────────
+@tree.command(name="post-server-rules", description="[Admin only] Post the Server Rules embed in a channel")
+@app_commands.describe(channel="Which channel should the embed be posted in?")
+async def post_server_rules_command(interaction: discord.Interaction, channel: discord.TextChannel):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(SHOP_EMBED_ROLES):
+        roles_text = " / ".join(SHOP_EMBED_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can post the server rules.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🔥 Primal Hell — Server Rules",
+        description=(
+            "Welcome to Primal Hell! Please read and follow all rules. "
+            "Breaking them may result in a warning, kick or permanent ban."
+        ),
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.add_field(
+        name="🗣️ Respect",
+        value="Be respectful to all players at all times. No toxicity, racism, harassment or discrimination of any kind.",
+        inline=False,
+    )
+    embed.add_field(
+        name="🌍 Language",
+        value=(
+            "This is a PvE community with English and German players. Please use **English** "
+            "in the English chat and **German** in the German chat. Keep the correct language "
+            "in the correct channel so everyone can follow along."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="⛔ No Cheating",
+        value="No cheating, exploiting, meshing or use of any unauthorized third-party tools. Violations result in a permanent ban.",
+        inline=False,
+    )
+    embed.add_field(
+        name="📢 No Spam or Advertising",
+        value=(
+            "No spam or excessive pinging. Advertising of other Discord servers, ARK servers or "
+            f"any other content is strictly prohibited without prior approval from Staff. "
+            f"Contact us via **{TICKET_CHANNEL}** to request a partnership."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="👮 Listen to Staff",
+        value=f"Follow instructions from Admins and Moderators at all times. If you disagree, open a ticket in **{TICKET_CHANNEL}**.",
+        inline=False,
+    )
+    embed.add_field(
+        name="🏗️ Base Limit",
+        value=(
+            "Each player/tribe is allowed a **maximum of 3 main bases**. Farm bases are excluded "
+            "from this limit, but their teleporter must be set to **public** so other players can use it too."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🚫 Griefing & Blocking",
+        value="No blocking of resources, spawns, obelisks, caves or artifact rooms. No excessive foundation spamming.",
+        inline=False,
+    )
+    embed.add_field(
+        name="🎉 Have Fun!",
+        value="Help each other out and enjoy the game. We are here to have a good time together!",
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • Last updated July 2026")
+
+    await channel.send(embed=embed)
+    await interaction.response.send_message(f"✅ Server rules embed posted in {channel.mention}.", ephemeral=True)
+
+
 # ── /admin-commands ──────────────────────────────────────────────────────────────
 ADMIN_COMMANDS_ROLES = ["Admin", "Owner"]  # only these roles can view this overview
 
@@ -1870,7 +1945,8 @@ async def admin_commands_command(interaction: discord.Interaction):
         value=(
             "`/wipe` — Announce a wild dino wipe in #announcements\n"
             "`/post-shop-embed` — Post the Shop announcement embed\n"
-            "`/post-vip-embed` — Post the VIP Status info embed"
+            "`/post-vip-embed` — Post the VIP Status info embed\n"
+            "`/post-server-rules` — Post the Server Rules embed"
         ),
         inline=False,
     )
