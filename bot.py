@@ -32,6 +32,17 @@ TICKET_CHANNEL      = "🎟️｜ticket-system"    # forum: new post = new ticke
 PH_PROMO_CHANNEL_ID = 1528402289117626440  # channel where !ph_promo is accepted
 HERMES_BOT_ID       = 1525423361600126977
 
+# ── Message-based tier progression ─────────────────────────────────────────
+TIER_ROLES = [
+    ("Toxic",    10,    100),
+    ("Alpha",    20,    200),
+    ("Elemental", 40,   400),
+    ("Shadow",   80,    800),
+    ("Mythic",   160,   1000),
+    ("Demonic",  320,   2000),
+    ("Spirit",   640,   4000),
+]
+
 # ── ARK Server Status (RCON) ────────────────────────────────────────────────
 ARK_HOST          = os.environ.get("ARK_HOST", "31.214.216.227")
 ARK_RCON_PORT     = int(os.environ.get("ARK_RCON_PORT", "11690"))
@@ -920,6 +931,13 @@ def init_db():
             coins INTEGER NOT NULL DEFAULT 0
         )
     """)
+    # ── Message count tracking for tier progression ─────────────────────────
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS message_counts (
+            discord_id TEXT PRIMARY KEY,
+            count INTEGER NOT NULL DEFAULT 0
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -1001,6 +1019,19 @@ def db_get_coins(discord_id: str) -> int:
     row = conn.execute("SELECT coins FROM coin_balances WHERE discord_id = ?", (discord_id,)).fetchone()
     conn.close()
     return row[0] if row else 0
+
+
+def db_increment_message_count(discord_id: str) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        "INSERT INTO message_counts (discord_id, count) VALUES (?, 1) "
+        "ON CONFLICT(discord_id) DO UPDATE SET count = count + 1",
+        (discord_id,),
+    )
+    conn.commit()
+    row = conn.execute("SELECT count FROM message_counts WHERE discord_id = ?", (discord_id,)).fetchone()
+    conn.close()
+    return row[0] if row else 1
 
 
 init_db()
