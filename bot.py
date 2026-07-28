@@ -18,6 +18,14 @@ intents.members = True  # required for on_member_update (VIP role auto-sync) and
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
+# Guild ID for instant command sync (set GUILD_ID env var)
+GUILD_ID = os.environ.get("GUILD_ID")
+if GUILD_ID:
+    GUILD_ID = int(GUILD_ID)
+    SYNC_GUILD = discord.Object(id=GUILD_ID)
+else:
+    SYNC_GUILD = None
+
 SUGGESTIONS_CHANNEL  = "❓｜suggestions"
 SERVER_CHANGES_CH    = "🔧｜server-changes"
 WIPE_ROLE           = "Admin"          # only members with this role can use /wipe
@@ -2566,7 +2574,12 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 @client.event
 async def on_ready():
     client.add_view(GiveawayView())
-    await tree.sync()
+    if SYNC_GUILD:
+        await tree.sync(guild=SYNC_GUILD)
+        print(f"✅ Commands synced to guild {GUILD_ID}")
+    else:
+        await tree.sync()
+        print("✅ Commands synced globally (may take up to 1 hour to appear)")
 
     # Reload giveaways that survived a restart and reschedule their timers
     loaded = db_load_all_giveaways()
