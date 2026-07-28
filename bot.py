@@ -2466,7 +2466,7 @@ async def on_message(message: discord.Message):
                     description=(
                         f"You reached the **{tier_label}** tier!\n\n"
                         f"Your Primal Coin code ({amount} coins): `{code}`\n\n"
-                        f"Redeem at: {SHOP_PUBLIC_URL}"
+                        f"👉 **Redeem the code under \"Buy Coins\" in the shop:**\n{SHOP_PUBLIC_URL}"
                     ),
                     color=discord.Color.gold(),
                 )
@@ -2513,7 +2513,7 @@ async def on_message(message: discord.Message):
                                             description=(
                                                 f"You reached the **{tier_name}** tier!\n\n"
                                                 f"Your Primal Coin code ({coins} coins): `{code}`\n\n"
-                                                f"Redeem at: {SHOP_PUBLIC_URL}"
+                                                f"👉 **Redeem the code under \"Buy Coins\" in the shop:**\n{SHOP_PUBLIC_URL}"
                                             ),
                                             color=discord.Color.gold(),
                                         )
