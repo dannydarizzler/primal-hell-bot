@@ -2031,19 +2031,40 @@ async def whoami_command(interaction: discord.Interaction):
 
 # ── /message-count ────────────────────────────────────────────────────────────────
 @tree.command(name="message-count", description="[Admin only] Check a user's message count")
-@app_commands.describe(user="User to check")
-async def message_count_command(interaction: discord.Interaction, user: discord.Member):
+@app_commands.describe(user="User ID, mention, or username to check")
+async def message_count_command(interaction: discord.Interaction, user: str):
     if not any(r.name in ("Admin", "Owner") for r in interaction.user.roles):
         await interaction.response.send_message("❌ Only **Admin** or **Owner** can use this command.", ephemeral=True)
         return
+    
+    # Parse user ID from mention, ID string, or username
+    user_id = None
+    if user.startswith("<@") and user.endswith(">"):
+        user_id = user[2:-1].replace("!", "")
+    elif user.isdigit():
+        user_id = user
+    else:
+        # Try to find by username in guild
+        member = discord.utils.get(interaction.guild.members, name=user) or discord.utils.get(interaction.guild.members, display_name=user)
+        if member:
+            user_id = str(member.id)
+    
+    if not user_id:
+        await interaction.response.send_message("❌ Could not find user. Use ID, mention, or exact username.", ephemeral=True)
+        return
+    
     conn = sqlite3.connect(DB_PATH)
-    row = conn.execute("SELECT count FROM message_counts WHERE discord_id = ?", (str(user.id),)).fetchone()
+    row = conn.execute("SELECT count FROM message_counts WHERE discord_id = ?", (user_id,)).fetchone()
     conn.close()
     count = row[0] if row else 0
-
+    
+    # Try to get display name
+    member = interaction.guild.get_member(int(user_id))
+    display = member.display_name if member else f"Unknown ({user_id})"
+    
     embed = discord.Embed(
         title="💬 Message Count",
-        description=f"{user.mention} has sent **{count:,}** messages.",
+        description=f"**{display}** has sent **{count:,}** messages.",
         color=discord.Color.blue(),
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
@@ -2051,13 +2072,13 @@ async def message_count_command(interaction: discord.Interaction, user: discord.
 
 
 # ── /message-leaderboard ──────────────────────────────────────────────────────────
-@tree.command(name="message-leaderboard", description="[Admin only] Show top 10 users by message count")
+@tree.command(name="message-leaderboard", description="[Admin only] Show top 20 users by message count")
 async def message_leaderboard_command(interaction: discord.Interaction):
     if not any(r.name in ("Admin", "Owner") for r in interaction.user.roles):
         await interaction.response.send_message("❌ Only **Admin** or **Owner** can use this command.", ephemeral=True)
         return
     conn = sqlite3.connect(DB_PATH)
-    rows = conn.execute("SELECT discord_id, count FROM message_counts ORDER BY count DESC LIMIT 10").fetchall()
+    rows = conn.execute("SELECT discord_id, count FROM message_counts ORDER BY count DESC LIMIT 20").fetchall()
     conn.close()
 
     if not rows:
@@ -2071,7 +2092,7 @@ async def message_leaderboard_command(interaction: discord.Interaction):
         lines.append(f"**{i}.** {name} — **{count:,}**")
 
     embed = discord.Embed(
-        title="📊 Message Leaderboard (Top 10)",
+        title="📊 Message Leaderboard (Top 20)",
         description="\n".join(lines),
         color=discord.Color.gold(),
     )
