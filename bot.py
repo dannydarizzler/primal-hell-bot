@@ -29,6 +29,8 @@ POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
 VIP_ROLE_NAME       = "VIP"                 # role granted by boosting — auto-syncs to the shop
 POLLS_CHANNEL       = "📊｜polls"            # polls always post here
 TICKET_CHANNEL      = "🎟️｜ticket-system"    # forum: new post = new ticket
+PH_PROMO_CHANNEL_ID = 1528402289117626440  # channel where !ph_promo is accepted
+HERMES_BOT_ID       = 1525423361600126977
 
 # ── ARK Server Status (RCON) ────────────────────────────────────────────────
 ARK_HOST          = os.environ.get("ARK_HOST", "31.214.216.227")
@@ -2328,6 +2330,28 @@ async def on_message(message: discord.Message):
             and message.author != client.user
             and message.channel.name == SERVER_CHANGES_CH):
         await message.channel.send("@everyone")
+
+    # ── PH_PROMO code generation (Hermes bot only) ──
+    if (message.author.id == HERMES_BOT_ID
+            and message.channel.id == PH_PROMO_CHANNEL_ID):
+        m = re.match(r'^!ph_promo (\w+) (\d+) (\d{17,19})$', message.content)
+        if m:
+            tier = m.group(1)
+            amount = int(m.group(2))
+            discord_id = m.group(3)
+            chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+            code = f"PH-{tier.upper()}-{''.join(random.choices(chars, k=6))}"
+            if SHOP_API_URL and BOT_SYNC_SECRET:
+                headers = {"x-bot-secret": BOT_SYNC_SECRET}
+                body = {"code": code, "type": "reward", "rewardCoins": amount, "maxUses": 1, "createdBy": str(message.author.id)}
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(f"{SHOP_API_URL}/api/admin/promo", headers=headers, json=body, timeout=10) as resp:
+                            if resp.status != 200:
+                                return
+                except Exception:
+                    return
+            await message.channel.send(f"PH_PROMO_OK|tier={tier}|amount={amount}|code={code}|discord={discord_id}")
 
     # Giveaway guess detection
     if not message.author.bot and message.guild:
