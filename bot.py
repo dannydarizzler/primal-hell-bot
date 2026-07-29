@@ -44,13 +44,16 @@ REFERRAL_LOG_CHANNEL   = "🔧｜server-changes"  # optional: quiet log of every
 
 # ── Message-based tier progression ─────────────────────────────────────────
 TIER_ROLES = [
-    ("Toxic",    10,    100),
-    ("Alpha",    20,    200),
-    ("Elemental", 40,   400),
-    ("Shadow",   80,    800),
-    ("Mythic",   160,   1000),
-    ("Demonic",  320,   2000),
-    ("Spirit",   640,   4000),
+    ("Rank - Toxic",     10,    100),
+    ("Rank - Alpha",     25,    200),
+    ("Rank - Elemental", 60,    300),
+    ("Rank - Shadow",    120,   400),
+    ("Rank - Mythic",    240,   500),
+    ("Rank - Legendary", 480,   600),
+    ("Rank - Demonic",   900,   700),
+    ("Rank - Spirit",    1400,  800),
+    ("Rank - Origin",    1800,  900),
+    ("Rank - Nightmare", 2500,  1000),
 ]
 
 # ── ARK Server Status (RCON) ────────────────────────────────────────────────
@@ -2621,7 +2624,7 @@ async def grant_tier_reward(discord_id: str, amount: int, tier_name: str):
         embed = discord.Embed(
             title="🎉 Tier Unlocked!",
             description=(
-                f"You reached the **{tier_name}** tier!\n\n"
+                f"You reached **{tier_name}**!\n\n"
                 f"**{amount:,} Primal Coins** have been credited to your account automatically.\n"
                 f"New balance: **{data['newBalance']:,} Coins**"
             ),
@@ -2879,7 +2882,7 @@ async def on_message(message: discord.Message):
                     shoutout_ch = discord.utils.get(message.guild.channels, name=SHOUTOUTS_CHANNEL)
                     if shoutout_ch:
                         asyncio.create_task(shoutout_ch.send(
-                            f"📣 Shoutout to Survivor **{message.author.display_name}** — just reached the **{tier_name}** rank! 🎉"
+                            f"📣 Shoutout to Survivor **{message.author.display_name}** — just reached **{tier_name}**! 🎉"
                         ))
         except Exception:
             pass
