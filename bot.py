@@ -31,6 +31,7 @@ GIVEAWAY_CHANNEL    = "🎁｜giveaways"        # giveaways always post here
 VIP_GIVEAWAY_CHANNEL = "💎｜vip-giveaways"    # VIP-only giveaways always post here
 POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
 VIP_ROLE_NAME       = "VIP"                 # role granted by boosting — auto-syncs to the shop
+SHOUTOUTS_CHANNEL   = "📣｜shoutouts"        # rank-up and VIP-boost shoutouts post here
 POLLS_CHANNEL       = "📊｜polls"            # polls always post here
 TICKET_CHANNEL      = "🎟️｜ticket-system"    # forum: new post = new ticket
 PH_PROMO_CHANNEL_ID = 1528402289117626440  # channel where !ph_promo is accepted
@@ -1482,49 +1483,6 @@ async def serverstatus_command(interaction: discord.Interaction):
         await interaction.followup.send(embed=embed)
 
 
-# ── /give-item (RCON) ────────────────────────────────────────────────────────────
-@tree.command(name="give-item", description="[Admin only] Give an item to a player via RCON")
-@app_commands.describe(
-    steam_id="Player's Steam ID (17-20 digits)",
-    item_id="Item ID (e.g. 144 for Cooked Meat, 259 for Cooked Fish Meat)",
-    quantity="How many (default 1)",
-    quality="Item quality 0-5 (default 0)",
-    force_blueprint="Give as blueprint (default false)"
-)
-@app_commands.choices(force_blueprint=[
-    app_commands.Choice(name="False", value="false"),
-    app_commands.Choice(name="True", value="true"),
-])
-async def give_item_command(
-    interaction: discord.Interaction,
-    steam_id: str,
-    item_id: int,
-    quantity: int = 1,
-    quality: int = 0,
-    force_blueprint: app_commands.Choice[str] = None,
-):
-    # Admin only
-    if not any(r.name in ("Admin", "Owner") for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Only **Admin** or **Owner** can use this.", ephemeral=True)
-        return
-
-    if not ARK_HOST or not ARK_RCON_PASSWORD:
-        await interaction.response.send_message("❌ RCON not configured.", ephemeral=True)
-        return
-
-    await interaction.response.defer(ephemeral=True)
-
-    bp = "true" if (force_blueprint and force_blueprint.value == "true") else "false"
-    cmd = f"GiveItemNumToPlayer {steam_id} {item_id} {quantity} {quality} {bp}"
-
-    try:
-        rcon = SourceRcon(ARK_HOST, ARK_RCON_PORT, ARK_RCON_PASSWORD)
-        result = await rcon.command(cmd)
-        await interaction.followup.send(f"✅ Command sent:\n`{cmd}`\n\nResponse: `{result or '(empty)'}`", ephemeral=True)
-    except Exception as e:
-        await interaction.followup.send(f"❌ RCON failed: `{e}`", ephemeral=True)
-
-
 # ── /check-items & /redeem-item ────────────────────────────────────────────────
 ADMIN_ITEM_ROLES = ["Admin", "Owner"]  # only these roles can view/redeem player items
 
@@ -2452,6 +2410,14 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 
     await push_vip_status_to_shop(str(after.id), has_role)
 
+    # Public shoutout when someone newly boosts (not when VIP is removed)
+    if has_role:
+        shoutout_ch = discord.utils.get(after.guild.channels, name=SHOUTOUTS_CHANNEL)
+        if shoutout_ch:
+            await shoutout_ch.send(
+                f"💎 VIP Shoutout — **{after.display_name}** just boosted the server and unlocked VIP status! 🚀"
+            )
+
 
 async def sync_vip_roles_on_startup():
     """One-time catch-up on bot startup: makes sure everyone currently holding
@@ -2465,6 +2431,67 @@ async def sync_vip_roles_on_startup():
             continue
         for member in role.members:
             await push_vip_status_to_shop(str(member.id), True)
+
+
+# ── Discord-activity tier reward: direct Coin credit (no promo code needed) ────
+async def grant_tier_reward(discord_id: str, amount: int, tier_name: str):
+    """Directly credits Coins to the player's shop balance for reaching a new
+    Discord-activity tier, then DMs them — same pattern as the Lucky Wheel,
+    no promo code / manual redemption required."""
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        return
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{SHOP_API_URL}/api/admin/grant-coins",
+                headers=headers,
+                json={"discordId": discord_id, "amount": amount},
+                timeout=10,
+            ) as resp:
+                if resp.status != 200:
+                    print(f"⚠️ Could not grant tier reward for {discord_id}: status {resp.status}")
+                    return
+                data = await resp.json()
+    except Exception as e:
+        print(f"⚠️ Could not grant tier reward for {discord_id}: {e}")
+        return
+
+    try:
+        user = await client.fetch_user(int(discord_id))
+        embed = discord.Embed(
+            title="🎉 Tier Unlocked!",
+            description=(
+                f"You reached the **{tier_name}** tier!\n\n"
+                f"**{amount:,} Primal Coins** have been credited to your account automatically.\n"
+                f"New balance: **{data['newBalance']:,} Coins**"
+            ),
+            color=discord.Color.gold(),
+        )
+        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+        await user.send(embed=embed)
+    except Exception as dm_err:
+        print(f"ℹ️ Could not DM user {discord_id} about their tier reward: {dm_err}")
+
+
+async def push_tier_progress_to_shop(discord_id: str, message_count: int):
+    """Keeps the shop's Profile tab progress bar in sync with the bot's live
+    message count. Best-effort — failures are silently ignored so a shop
+    hiccup never disrupts normal chatting."""
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        return
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{SHOP_API_URL}/api/admin/update-tier-progress",
+                headers=headers,
+                json={"discordId": discord_id, "messageCount": message_count},
+                timeout=10,
+            ):
+                pass
+    except Exception:
+        pass
 
 
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
@@ -2518,11 +2545,12 @@ async def on_message(message: discord.Message):
             except Exception:
                 pass
 
-    # ── Tier progression (message count → role + promo code DM) ──
+    # ── Tier progression (message count → role + direct Coin credit) ──
     if not message.author.bot and message.guild:
         try:
             uid = str(message.author.id)
             new_count = db_increment_message_count(uid)
+            asyncio.create_task(push_tier_progress_to_shop(uid, new_count))
 
             for tier_name, threshold, coins in TIER_ROLES:
                 if new_count == threshold:
@@ -2541,32 +2569,15 @@ async def on_message(message: discord.Message):
                         except Exception:
                             pass
 
-                    # Create promo code and DM
-                    chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-                    code = f"PH-{tier_name.upper()}-{''.join(random.choices(chars, k=6))}"
-                    if SHOP_API_URL and BOT_SYNC_SECRET:
-                        headers = {"x-bot-secret": BOT_SYNC_SECRET}
-                        body = {"code": code, "type": "reward", "rewardCoins": coins, "maxUses": 1, "createdBy": uid}
-                        try:
-                            async with aiohttp.ClientSession() as session:
-                                async with session.post(f"{SHOP_API_URL}/api/admin/promo", headers=headers, json=body, timeout=10) as resp:
-                                    if resp.status == 200:
-                                        dm_embed = discord.Embed(
-                                            title="🎉 Tier Unlocked!",
-                                            description=(
-                                                f"You reached the **{tier_name}** tier!\n\n"
-                                                f"Your Primal Coin code ({coins} coins): `{code}`\n\n"
-                                                f"👉 **Redeem the code under \"Buy Coins\" in the** [Primal Hell Shop]({SHOP_PUBLIC_URL})"
-                                            ),
-                                            color=discord.Color.gold(),
-                                        )
-                                        dm_embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-                                        try:
-                                            await message.author.send(embed=dm_embed)
-                                        except Exception:
-                                            pass
-                        except Exception:
-                            pass
+                    # Directly credit Coins and DM — no promo code needed
+                    asyncio.create_task(grant_tier_reward(uid, coins, tier_name))
+
+                    # Public shoutout so everyone sees the promotion
+                    shoutout_ch = discord.utils.get(message.guild.channels, name=SHOUTOUTS_CHANNEL)
+                    if shoutout_ch:
+                        asyncio.create_task(shoutout_ch.send(
+                            f"📣 Shoutout to Survivor **{message.author.display_name}** — just reached the **{tier_name}** rank! 🎉"
+                        ))
         except Exception:
             pass
 
@@ -2664,4 +2675,3 @@ async def on_ready():
     print(f"✅ Bot online as {client.user} — {len(loaded)} giveaway(s) restored from DB")
 
 client.run(os.environ["DISCORD_TOKEN"])
-
