@@ -37,6 +37,11 @@ TICKET_CHANNEL      = "🎟️｜ticket-system"    # forum: new post = new ticke
 PH_PROMO_CHANNEL_ID = 1528402289117626440  # channel where !ph_promo is accepted
 HERMES_BOT_ID       = 1525423361600126977
 
+# ── Referral bonus ───────────────────────────────────────────────────────────
+REFERRAL_BONUS_COINS   = 300   # Coins credited to the inviter per new, unique referral
+REFERRAL_MIN_ACCOUNT_AGE_DAYS = 3   # invited account must be at least this old — blocks disposable alt accounts
+REFERRAL_LOG_CHANNEL   = "🔧｜server-changes"  # optional: quiet log of every referral (reuses existing channel)
+
 # ── Message-based tier progression ─────────────────────────────────────────
 TIER_ROLES = [
     ("Toxic",    10,    100),
@@ -943,6 +948,16 @@ def init_db():
             count INTEGER NOT NULL DEFAULT 0
         )
     """)
+    # ── Referral rewards — invited_discord_id is PRIMARY KEY so a given
+    # account can only ever trigger one payout, no matter how many times it
+    # leaves and rejoins the server (leave/rejoin farming is blocked here) ──
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS referral_rewards (
+            invited_discord_id TEXT PRIMARY KEY,
+            inviter_discord_id TEXT NOT NULL,
+            rewarded_at REAL NOT NULL
+        )
+    """)
     conn.commit()
     conn.close()
 
@@ -1037,6 +1052,40 @@ def db_increment_message_count(discord_id: str) -> int:
     row = conn.execute("SELECT count FROM message_counts WHERE discord_id = ?", (discord_id,)).fetchone()
     conn.close()
     return row[0] if row else 1
+
+
+def db_referral_already_rewarded(invited_discord_id: str) -> bool:
+    """True if this Discord account has ever triggered a referral payout before
+    — the check that stops leave/rejoin (or re-inviting via a different link)
+    from farming multiple payouts for the same account."""
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute(
+        "SELECT 1 FROM referral_rewards WHERE invited_discord_id = ?", (invited_discord_id,)
+    ).fetchone()
+    conn.close()
+    return row is not None
+
+
+def db_record_referral(invited_discord_id: str, inviter_discord_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute(
+        "INSERT OR IGNORE INTO referral_rewards (invited_discord_id, inviter_discord_id, rewarded_at) "
+        "VALUES (?, ?, ?)",
+        (invited_discord_id, inviter_discord_id, time.time()),
+    )
+    conn.commit()
+    conn.close()
+
+
+def db_get_referral(invited_discord_id: str):
+    """Returns (inviter_discord_id, rewarded_at) for a given invited account, or None."""
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute(
+        "SELECT inviter_discord_id, rewarded_at FROM referral_rewards WHERE invited_discord_id = ?",
+        (invited_discord_id,),
+    ).fetchone()
+    conn.close()
+    return row
 
 
 init_db()
@@ -2014,7 +2063,46 @@ async def admin_commands_command(interaction: discord.Interaction):
         ),
         inline=False,
     )
+    embed.add_field(
+        name="🔥 Referrals",
+        value="`/check-referral <player>` — See who invited a player and whether the bonus was paid",
+        inline=False,
+    )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# ── /check-referral ────────────────────────────────────────────────────────────
+@tree.command(name="check-referral", description="[Admin only] Check who invited a player and whether the bonus was paid")
+@app_commands.describe(player="Which player do you want to check?")
+async def check_referral_command(interaction: discord.Interaction, player: discord.Member):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(ADMIN_ITEM_ROLES):
+        roles_text = " / ".join(ADMIN_ITEM_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can check referrals.", ephemeral=True)
+        return
+
+    row = db_get_referral(str(player.id))
+    if row is None:
+        await interaction.response.send_message(
+            f"ℹ️ No referral bonus was ever paid out for {player.mention} "
+            "(either they joined without an invite link, the inviter couldn't be determined, "
+            "or their account was too new at the time).",
+            ephemeral=True,
+        )
+        return
+
+    inviter_id, rewarded_at = row
+    embed = discord.Embed(
+        title="🔥 Referral Record",
+        description=(
+            f"**Invited:** {player.mention}\n"
+            f"**Invited by:** <@{inviter_id}>\n"
+            f"**Bonus paid:** {REFERRAL_BONUS_COINS:,} Coins\n"
+            f"**When:** <t:{int(rewarded_at)}:f>"
+        ),
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
@@ -2494,6 +2582,150 @@ async def push_tier_progress_to_shop(discord_id: str, message_count: int):
         pass
 
 
+# ── Referral Bonus (invite tracking → direct Coin credit) ─────────────────────
+# guild_id → {invite_code: (uses, inviter_id, max_uses)} — a snapshot of every
+# invite's use-count, refreshed on startup / invite create / member join, so we
+# can diff "before vs after" and figure out which invite was used to join.
+invite_cache: dict[int, dict[str, tuple[int, int | None, int | None]]] = {}
+
+
+async def cache_guild_invites(guild: discord.Guild):
+    try:
+        invites = await guild.invites()
+    except discord.Forbidden:
+        print(f"⚠️ Missing 'Manage Server' permission — cannot track invites in {guild.name}. "
+              f"Referral bonus won't work until the bot role has this permission.")
+        return
+    except discord.HTTPException as e:
+        print(f"⚠️ Could not fetch invites for {guild.name}: {e}")
+        return
+
+    invite_cache[guild.id] = {
+        inv.code: (inv.uses or 0, inv.inviter.id if inv.inviter else None, inv.max_uses)
+        for inv in invites
+    }
+
+
+async def grant_referral_reward(inviter_discord_id: str, invited_display_name: str):
+    """Directly credits the inviter's shop balance with the referral bonus,
+    then DMs them a referral bonus message — same pattern as the tier/wheel
+    rewards, no promo code or manual redemption needed."""
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        return
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{SHOP_API_URL}/api/admin/grant-coins",
+                headers=headers,
+                json={"discordId": inviter_discord_id, "amount": REFERRAL_BONUS_COINS},
+                timeout=10,
+            ) as resp:
+                if resp.status != 200:
+                    print(f"⚠️ Could not grant referral reward for {inviter_discord_id}: status {resp.status}")
+                    return
+                data = await resp.json()
+    except Exception as e:
+        print(f"⚠️ Could not grant referral reward for {inviter_discord_id}: {e}")
+        return
+
+    try:
+        user = await client.fetch_user(int(inviter_discord_id))
+        embed = discord.Embed(
+            title="🔥 Referral Bonus!",
+            description=(
+                f"**{invited_display_name}** joined Primal Hell using your invite!\n\n"
+                f"You've been credited **{REFERRAL_BONUS_COINS:,} Primal Coins** as a thank you "
+                f"for growing the community.\n"
+                f"New balance: **{data['newBalance']:,} Coins**\n\n"
+                "Keep sharing your invite link — every new survivor earns you more Coins!\n\n"
+                "See you in the fire."
+            ),
+            color=discord.Color.from_rgb(255, 90, 31),
+        )
+        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+        await user.send(embed=embed)
+    except Exception as dm_err:
+        print(f"ℹ️ Could not DM user {inviter_discord_id} about their referral reward: {dm_err}")
+
+
+@client.event
+async def on_invite_create(invite: discord.Invite):
+    await cache_guild_invites(invite.guild)
+
+
+@client.event
+async def on_invite_delete(invite: discord.Invite):
+    cache = invite_cache.get(invite.guild.id)
+    if cache is not None:
+        cache.pop(invite.code, None)
+
+
+@client.event
+async def on_member_join(member: discord.Member):
+    guild = member.guild
+    before = invite_cache.get(guild.id, {})
+
+    try:
+        after_invites = await guild.invites()
+    except discord.Forbidden:
+        return  # bot lacks Manage Server — can't determine the inviter
+    except discord.HTTPException:
+        return
+
+    after = {
+        inv.code: (inv.uses or 0, inv.inviter.id if inv.inviter else None, inv.max_uses)
+        for inv in after_invites
+    }
+
+    inviter_id = None
+
+    # Case 1: an invite still exists and its use-count went up
+    for code, (uses, inv_id, max_uses) in after.items():
+        prev = before.get(code)
+        if prev is not None and uses > prev[0]:
+            inviter_id = inv_id
+            break
+
+    # Case 2: an invite hit max_uses on this exact join and got auto-deleted,
+    # so it's in "before" but missing from "after"
+    if inviter_id is None:
+        for code, (uses, inv_id, max_uses) in before.items():
+            if code not in after and max_uses and uses + 1 >= max_uses:
+                inviter_id = inv_id
+                break
+
+    invite_cache[guild.id] = after
+
+    if inviter_id is None or inviter_id == member.id:
+        return  # couldn't determine inviter, or someone "invited themselves" (e.g. vanity URL)
+
+    # Anti-farm: block brand-new Discord accounts (common alt-account abuse pattern)
+    account_age_days = (discord.utils.utcnow() - member.created_at).days
+    if account_age_days < REFERRAL_MIN_ACCOUNT_AGE_DAYS:
+        print(f"ℹ️ Referral skipped: {member.id} account too new ({account_age_days}d) — possible alt account.")
+        return
+
+    # Anti-farm: this exact Discord account has already triggered a referral
+    # payout before (regardless of who invited it this time) — leaving and
+    # rejoining, even via a different invite, can never pay out twice.
+    if db_referral_already_rewarded(str(member.id)):
+        return
+
+    db_record_referral(str(member.id), str(inviter_id))
+    asyncio.create_task(grant_referral_reward(str(inviter_id), member.display_name))
+
+    log_ch = discord.utils.get(guild.channels, name=REFERRAL_LOG_CHANNEL)
+    if log_ch:
+        try:
+            await log_ch.send(
+                f"🔥 Referral: <@{inviter_id}> invited **{member.display_name}** "
+                f"(`{member.id}`) — {REFERRAL_BONUS_COINS} Coins credited."
+            )
+        except discord.HTTPException:
+            pass
+
+
 # ── GitHub Webhook → @everyone ping ───────────────────────────────────────────
 @client.event
 async def on_message(message: discord.Message):
@@ -2671,6 +2903,11 @@ async def on_ready():
         asyncio.create_task(sync_shop_redemptions())
         asyncio.create_task(sync_shop_vip_spins())
         asyncio.create_task(sync_vip_roles_on_startup())
+
+    # Snapshot every guild's current invites so the referral system has a
+    # baseline to diff against on the next member join
+    for guild in client.guilds:
+        await cache_guild_invites(guild)
 
     print(f"✅ Bot online as {client.user} — {len(loaded)} giveaway(s) restored from DB")
 
