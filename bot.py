@@ -1822,6 +1822,75 @@ async def list_promos_command(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
+@tree.command(name="delete-promo", description="[Admin only] Delete a single promo code by its code")
+@app_commands.describe(code="The exact promo code to delete, e.g. BONUS20")
+async def delete_promo_command(interaction: discord.Interaction, code: str):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(PROMO_ADMIN_ROLES):
+        roles_text = " / ".join(PROMO_ADMIN_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can delete promo codes.", ephemeral=True)
+        return
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.delete(f"{SHOP_API_URL}/api/admin/promo/{code}", headers=headers, timeout=10) as resp:
+                if resp.status == 404:
+                    await interaction.followup.send(f"❌ No promo code found named **{code}**.", ephemeral=True)
+                    return
+                if resp.status != 200:
+                    await interaction.followup.send(f"❌ Shop returned an error (status {resp.status}).", ephemeral=True)
+                    return
+    except Exception as e:
+        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
+        return
+
+    await interaction.followup.send(f"🗑️ Promo code **{code}** has been deleted.", ephemeral=True)
+
+
+@tree.command(name="cleanup-promos", description="[Admin only] Delete all expired or fully-used promo codes to keep the list clean")
+async def cleanup_promos_command(interaction: discord.Interaction):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(PROMO_ADMIN_ROLES):
+        roles_text = " / ".join(PROMO_ADMIN_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can clean up promo codes.", ephemeral=True)
+        return
+
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.delete(f"{SHOP_API_URL}/api/admin/promo/cleanup/inactive", headers=headers, timeout=10) as resp:
+                if resp.status != 200:
+                    await interaction.followup.send(f"❌ Shop returned an error (status {resp.status}).", ephemeral=True)
+                    return
+                data = await resp.json()
+    except Exception as e:
+        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
+        return
+
+    count = data.get("deletedCount", 0)
+    if count == 0:
+        await interaction.followup.send("✨ No inactive promo codes found — the list is already clean.", ephemeral=True)
+    else:
+        await interaction.followup.send(
+            f"🧹 Cleaned up **{count}** inactive promo code{'s' if count != 1 else ''} "
+            f"(expired or fully used).",
+            ephemeral=True,
+        )
+
+
 # ── /post-shop-embed ────────────────────────────────────────────────────────────
 SHOP_EMBED_ROLES = ["Admin", "Owner"]  # only these roles can post the shop announcement
 
@@ -2059,7 +2128,9 @@ async def admin_commands_command(interaction: discord.Interaction):
         name="🎟️ Promo Codes",
         value=(
             "`/create-promo` — Create a Bonus (%) or Reward (flat Coins) code\n"
-            "`/list-promos` — View all promo codes and their usage"
+            "`/list-promos` — View all promo codes and their usage\n"
+            "`/delete-promo <code>` — Delete one specific promo code\n"
+            "`/cleanup-promos` — Delete all expired or fully-used codes at once"
         ),
         inline=False,
     )
