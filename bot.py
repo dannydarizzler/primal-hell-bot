@@ -1482,6 +1482,49 @@ async def serverstatus_command(interaction: discord.Interaction):
         await interaction.followup.send(embed=embed)
 
 
+# ── /give-item (RCON) ────────────────────────────────────────────────────────────
+@tree.command(name="give-item", description="[Admin only] Give an item to a player via RCON")
+@app_commands.describe(
+    steam_id="Player's Steam ID (17-20 digits)",
+    item_id="Item ID (e.g. 144 for Cooked Meat, 259 for Cooked Fish Meat)",
+    quantity="How many (default 1)",
+    quality="Item quality 0-5 (default 0)",
+    force_blueprint="Give as blueprint (default false)"
+)
+@app_commands.choices(force_blueprint=[
+    app_commands.Choice(name="False", value="false"),
+    app_commands.Choice(name="True", value="true"),
+])
+async def give_item_command(
+    interaction: discord.Interaction,
+    steam_id: str,
+    item_id: int,
+    quantity: int = 1,
+    quality: int = 0,
+    force_blueprint: app_commands.Choice[str] = None,
+):
+    # Admin only
+    if not any(r.name in ("Admin", "Owner") for r in interaction.user.roles):
+        await interaction.response.send_message("❌ Only **Admin** or **Owner** can use this.", ephemeral=True)
+        return
+
+    if not ARK_HOST or not ARK_RCON_PASSWORD:
+        await interaction.response.send_message("❌ RCON not configured.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    bp = "true" if (force_blueprint and force_blueprint.value == "true") else "false"
+    cmd = f"GiveItemNumToPlayer {steam_id} {item_id} {quantity} {quality} {bp}"
+
+    try:
+        rcon = SourceRcon(ARK_HOST, ARK_RCON_PORT, ARK_RCON_PASSWORD)
+        result = await rcon.command(cmd)
+        await interaction.followup.send(f"✅ Command sent:\n`{cmd}`\n\nResponse: `{result or '(empty)'}`", ephemeral=True)
+    except Exception as e:
+        await interaction.followup.send(f"❌ RCON failed: `{e}`", ephemeral=True)
+
+
 # ── /check-items & /redeem-item ────────────────────────────────────────────────
 ADMIN_ITEM_ROLES = ["Admin", "Owner"]  # only these roles can view/redeem player items
 
