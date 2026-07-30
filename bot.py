@@ -65,128 +65,132 @@ ARK_MAX_PLAYERS   = os.environ.get("ARK_MAX_PLAYERS", "20")
 ARK_SERVER_NAME   = os.environ.get("ARK_SERVER_NAME", "#Primal-hell-5x-Chaos-Modded")
 
 # ── Loot Drop Data ─────────────────────────────────────────────────────────────
+# Reworked drop pools — every color now clearly separates:
+#   ✅ Guaranteed  → always in the crate
+#   🎲 Pool        → possible, drawn randomly from a shared pool
 DROPS = {
     "white": {
         "label": "⚪ White — Starter Kit",
         "normal": (
+            "**✅ Guaranteed:**\n"
             "• Toxic Hide Armor (5 pieces)\n"
             "• 10x Bola\n"
             "• Toxic Pick\n"
             "• Toxic Hatchet\n"
-            "• 10x Med Brew"
+            "• 10x Med Brew\n"
+            "• 1x Chibi Pet"
         ),
         "double": (
+            "**✅ Guaranteed:**\n"
             "• Everything from Normal\n"
             "• Crossbow\n"
             "• 20x Potent Tranq Arrows\n"
+            "• 1x Chibi Pet\n"
             "• 1–3x Small XP Potion"
         ),
         "quality": "Primitive",
     },
     "green": {
-        "label": "🟢 Green — Resources",
+        "label": "🟢 Green — Taming Support",
         "normal": (
-            "• 50–125x Polymer\n"
-            "• 50–125x Cementing Paste\n"
-            "• 50–125x Silica Pearls\n"
-            "• 50–125x Oil"
+            "**✅ Guaranteed:**\n"
+            "• 25x Mythic Tranq Dart\n"
+            "• Longneck Rifle\n"
+            "• 10x Toxic Kibble\n"
+            "• 10x Toxic Health Potion\n"
+            "• 10x Medium XP Potion\n\n"
+            "**🎲 Pool (possible):**\n"
+            "• 5x random Taming Gear Item-Sets"
         ),
         "double": (
-            "• 75–200x Polymer\n"
-            "• 75–200x Cementing Paste\n"
-            "• 75–200x Silica Pearls\n"
-            "• 75–200x Oil"
+            "**✅ Guaranteed:**\n"
+            "• 50x Mythic Tranq Dart\n"
+            "• Longneck Rifle\n"
+            "• Crossbow\n"
+            "• 15x Toxic Kibble\n"
+            "• 10x Toxic Health Potion\n"
+            "• 15x Medium XP Potion\n\n"
+            "**🎲 Pool (possible):**\n"
+            "• 6x random Taming Gear Item-Sets"
         ),
         "quality": "—",
     },
     "blue": {
-        "label": "🔵 Blue — Alpha Tier",
+        "label": "🔵 Blue — Gear Pool",
         "normal": (
-            "**Guaranteed:**\n"
-            "• 15–35x Potent/Alpha Tranq Arrows\n"
-            "• 2–5x Alpha Health Potion\n"
-            "• 2–5x Medium XP Potion\n\n"
-            "**Gear Pool (3–8 items, no Blueprints):**\n"
-            "• Crossbow · Alpha Flak Set (5 pieces)\n"
-            "• Alpha Pick · Hatchet · Sickle · Pike · Chainsaw"
+            "**🎲 Pool (possible — 3–7 items drawn, no Blueprint chance):**\n"
+            "• Alpha Flak Set (5 pieces) · Alpha Pick · Hatchet · Sickle · Pike\n"
+            "• Volcanic Flak Set (5 pieces) · Volcanic Pick · Hatchet · Sickle · Pike\n"
+            "• Mythic Pick · Hatchet · Sickle · Pike\n"
+            "*(22 entries total in the shared pool — no guaranteed items anymore)*"
         ),
         "double": (
-            "**Guaranteed:**\n"
-            "• 15–35x Potent/Alpha Tranq Arrows\n"
-            "• 2–5x Alpha Health Potion\n"
-            "• 2–5x Medium XP Potion\n\n"
-            "**Gear Pool (3–11 items, 20% Blueprint chance each):**\n"
-            "• Crossbow · Alpha Flak Set (5 pieces)\n"
-            "• Alpha Pick · Hatchet · Sickle · Pike · Chainsaw"
+            "**🎲 Pool (possible — 5–10 items drawn, 20% Blueprint chance each):**\n"
+            "• Alpha Flak Set (5 pieces) · Alpha Pick · Hatchet · Sickle · Pike\n"
+            "• Volcanic Flak Set (5 pieces) · Volcanic Pick · Hatchet · Sickle · Pike\n"
+            "• Mythic Pick · Hatchet · Sickle · Pike\n"
+            "*(22 entries total in the shared pool — no guaranteed items anymore)*"
         ),
         "quality": "—",
     },
     "purple": {
-        "label": "🟣 Purple — Structures",
+        "label": "🟣 Purple — Resources",
         "normal": (
-            "• 10x Metal Foundation\n"
-            "• 15x Metal Wall\n"
-            "• 10x Metal Ceiling\n"
-            "• Dino Gateway + Gate"
+            "**✅ Guaranteed:**\n"
+            "• 70–145x Polymer\n"
+            "• 70–145x Cementing Paste\n"
+            "• 70–145x Silica Pearls\n"
+            "• 70–145x Oil"
         ),
         "double": (
-            "• 20x Metal Foundation\n"
-            "• 30x Metal Wall\n"
-            "• 20x Metal Ceiling\n"
-            "• Dino Gateway + Gate"
+            "**✅ Guaranteed:**\n"
+            "• 115–240x Polymer\n"
+            "• 115–240x Cementing Paste\n"
+            "• 115–240x Silica Pearls\n"
+            "• 115–240x Oil"
         ),
         "quality": "—",
     },
     "yellow": {
-        "label": "🟡 Yellow — Volcanic Tier",
+        "label": "🟡 Yellow — Saddle Vault",
         "normal": (
-            "**Guaranteed:**\n"
-            "• 10–20x Tranq Dart (random: Elemental/Alpha/Potent)\n"
-            "• 8–16x Elemental ADV Sniper Bullets\n"
-            "• 2–5x Large XP Potion\n"
-            "• 1–5x Mythic Health Potion\n\n"
-            "**Gear Pool (3–8 items, no Blueprints):**\n"
-            "• Longneck · Volcanic Flak Set (5 pieces)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike · Chainsaw"
+            "**🎲 Pool (possible — 10 saddles drawn, 10% Blueprint chance each):**\n"
+            "• Alpha · Toxic · Volcanic · Electric · Hydro · Fabled\n"
+            "• Legendary · Mythic · Fairy · Angelic · Demonic · Chaos · Spirit\n"
+            "*(142 saddles total in the shared pool — no guaranteed items anymore)*"
         ),
         "double": (
-            "**Guaranteed:**\n"
-            "• 15–35x Tranq Dart (random: Elemental/Alpha/Potent)\n"
-            "• 8–24x Elemental ADV Sniper Bullets\n"
-            "• 2–5x Large XP Potion\n"
-            "• 1–5x Mythic Health Potion\n\n"
-            "**Gear Pool (3–8 items, 20% Blueprint chance each):**\n"
-            "• Longneck · Volcanic Flak Set (5 pieces)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike · Chainsaw\n"
-            "• Fab Sniper (Mastercraft) *(Double crates only)*"
+            "**🎲 Pool (possible — 15 saddles drawn, 10% Blueprint chance each):**\n"
+            "• Alpha · Toxic · Volcanic · Electric · Hydro · Fabled\n"
+            "• Legendary · Mythic · Fairy · Angelic · Demonic · Chaos · Spirit\n"
+            "*(142 saddles total in the shared pool — no guaranteed items anymore)*"
         ),
         "quality": "—",
     },
     "red": {
         "label": "🔴 Red — Endgame Exclusives",
         "normal": (
-            "**Guaranteed:**\n"
+            "**✅ Guaranteed:**\n"
             "• 8–25x Mythic/Primal ADV Sniper Bullets (random)\n"
             "• 1–2x Max XP Potion\n"
             "• 1–2x Nightmare Health Potion\n"
             "• 8–25x Primal Compound Bow Arrows\n\n"
-            "**Gear Pool (3–8 items, no Blueprints):**\n"
-            "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
-            "• Legend Riot Set (5 pieces)\n"
-            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw"
+            "**🎲 Pool (possible — 3–8 items drawn, no Blueprint chance):**\n"
+            "• Fab Sniper · Compound Bow *(0% Blueprint chance — always base weapon in Normal)*\n"
+            "• Mythic Flak Set (5 pieces) · Legend Riot Set (5 pieces)\n"
+            "• Mythic Pick · Hatchet · Sickle · Pike"
         ),
         "double": (
-            "**Guaranteed:**\n"
+            "**✅ Guaranteed:**\n"
             "• 8–25x Mythic/Primal ADV Sniper Bullets (random)\n"
             "• 1–2x Max XP Potion\n"
             "• 1–2x Nightmare Health Potion\n"
             "• 8–25x Primal Compound Bow Arrows\n"
             "• Additional guaranteed Primal ADV Sniper Bullets\n\n"
-            "**Gear Pool (3–8 items, 20% Blueprint chance each — no exception for Chainsaw/Compound Bow):**\n"
-            "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
-            "• Legend Riot Set (5 pieces)\n"
-            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw\n"
-            "• Compound Bow added to pool (20% Blueprint chance like all other items)"
+            "**🎲 Pool (possible — 3–8 items drawn, 20% Blueprint chance each):**\n"
+            "• Fab Sniper · Compound Bow *(same 20% Blueprint chance as everything else)*\n"
+            "• Mythic Flak Set (5 pieces) · Legend Riot Set (5 pieces)\n"
+            "• Mythic Pick · Hatchet · Sickle · Pike"
         ),
         "quality": "—",
     },
@@ -271,10 +275,10 @@ async def commands_command(interaction: discord.Interaction):
 @app_commands.describe(color="Which drop color?")
 @app_commands.choices(color=[
     app_commands.Choice(name="⚪ White — Starter Kit",       value="white"),
-    app_commands.Choice(name="🟢 Green — Resources",         value="green"),
-    app_commands.Choice(name="🔵 Blue — Alpha Tier",         value="blue"),
-    app_commands.Choice(name="🟣 Purple — Structures",       value="purple"),
-    app_commands.Choice(name="🟡 Yellow — Volcanic Tier",    value="yellow"),
+    app_commands.Choice(name="🟢 Green — Taming Support",    value="green"),
+    app_commands.Choice(name="🔵 Blue — Gear Pool",          value="blue"),
+    app_commands.Choice(name="🟣 Purple — Resources",        value="purple"),
+    app_commands.Choice(name="🟡 Yellow — Saddle Vault",     value="yellow"),
     app_commands.Choice(name="🔴 Red — Endgame Exclusives",  value="red"),
 ])
 async def drop_command(interaction: discord.Interaction, color: str):
@@ -302,10 +306,10 @@ async def drops_command(interaction: discord.Interaction):
         title="Drop — Overview",
         description=(
             "⚪ White → Starter Kit\n"
-            "🟢 Green → Resources\n"
-            "🔵 Blue → Alpha Tier\n"
-            "🟣 Purple → Structures\n"
-            "🟡 Yellow → Volcanic Tier\n"
+            "🟢 Green → Taming Support\n"
+            "🔵 Blue → Gear Pool\n"
+            "🟣 Purple → Resources\n"
+            "🟡 Yellow → Saddle Vault\n"
             "🔴 Red → Endgame Exclusives\n\n"
             "Use `/drop <color>` for full details.\n"
             "**Double** = Crate with ring — always better!"
@@ -539,7 +543,7 @@ async def armor_command(interaction: discord.Interaction):
         name="3️⃣ Alpha Flak — Alpha Tier (Lvl 56, 2500 armor/set)",
         value=(
             "Solid mid-game armor, upgrade from Toxic Hide.\n"
-            "Available from the 🔵 **Blue drop** (Blueprint, Double only)."
+            "Possible from the 🔵 **Blue drop** gear pool (Blueprint chance in Double crates only)."
         ),
         inline=False,
     )
@@ -547,7 +551,7 @@ async def armor_command(interaction: discord.Interaction):
         name="4️⃣ Volcanic Flak — Volcanic Tier (Lvl 56, 5000 armor/set)",
         value=(
             "Strong late-game armor with improved stats.\n"
-            "Available from the 🟡 **Yellow drop** (Blueprint, Double only)."
+            "Possible from the 🔵 **Blue drop** gear pool (Blueprint chance in Double crates only)."
         ),
         inline=False,
     )
@@ -611,7 +615,8 @@ async def armor_command(interaction: discord.Interaction):
             "• Flak Blueprints can be found in supply drops\n"
             "• The **Upgrade Station** can upgrade finished armor pieces to higher quality\n"
             "• ⚠️ The Upgrade Station works on **ARK base items only** — "
-            "Primal Chaos items with no base ARK equivalent (e.g. Reaper saddle) cannot be upgraded"
+            "Primal Chaos items with no base ARK equivalent (e.g. Reaper saddle) cannot be upgraded\n"
+            "• 🟡 The Yellow drop no longer gives armor — it's now the Saddle Vault (see `/drop yellow`)"
         ),
         inline=True,
     )
