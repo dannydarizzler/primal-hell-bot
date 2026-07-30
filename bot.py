@@ -1540,52 +1540,6 @@ async def serverstatus_command(interaction: discord.Interaction):
         await interaction.followup.send(embed=embed)
 
 
-# ── /awesome-admin ──────────────────────────────────────────────────────────────
-@tree.command(name="awesome-admin", description="[Admin only] Chat-Nachricht senden oder RCON-Befehl ausführen")
-@app_commands.describe(
-    action="Chat = Nachricht senden, RCON = Befehl ausführen",
-    text="Die Chat-Nachricht oder der RCON-Befehl",
-)
-@app_commands.choices(action=[
-    app_commands.Choice(name="💬 Chat — Nachricht an Ingame-Chat senden", value="chat"),
-    app_commands.Choice(name="⚡ RCON — Beliebigen RCON-Befehl ausführen", value="rcon"),
-])
-async def awesome_admin_command(interaction: discord.Interaction, action: str, text: str):
-    user_role_names = {role.name for role in interaction.user.roles}
-    if not user_role_names.intersection({"Admin", "Owner"}):
-        await interaction.response.send_message(
-            "❌ Nur **Admin** oder **Owner** können diesen Befehl nutzen.",
-            ephemeral=True,
-        )
-        return
-
-    if not await check_channel(interaction):
-        return
-
-    await interaction.response.defer(ephemeral=True)
-
-    try:
-        rcon = SourceRcon(ARK_HOST, ARK_RCON_PORT, ARK_RCON_PASSWORD)
-
-        if action == "chat":
-            await rcon.command(f"ServerChat {text}")
-            await interaction.followup.send(f"✅ Nachricht an Ingame-Chat gesendet:\n`{text}`", ephemeral=True)
-        else:
-            response = await rcon.command(text)
-            if response and response.strip():
-                if len(response) > 1900:
-                    response = response[:1900] + "\n... (gekürzt)"
-                await interaction.followup.send(
-                    f"**Befehl:** `{text}`\n**Antwort:**\n```\n{response}\n```",
-                    ephemeral=True,
-                )
-            else:
-                await interaction.followup.send(f"✅ Befehl `{text}` ausgeführt (keine Antwort).", ephemeral=True)
-
-    except Exception as e:
-        await interaction.followup.send(f"❌ RCON-Fehler: `{e}`", ephemeral=True)
-
-
 # ── /check-items & /redeem-item ────────────────────────────────────────────────
 ADMIN_ITEM_ROLES = ["Admin", "Owner"]  # only these roles can view/redeem player items
 
@@ -2185,14 +2139,6 @@ async def admin_commands_command(interaction: discord.Interaction):
             "`/list-promos` — View all promo codes and their usage\n"
             "`/delete-promo <code>` — Delete one specific promo code\n"
             "`/cleanup-promos` — Delete all expired or fully-used codes at once"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="🎮 RCON (Serversteuerung)",
-        value=(
-            "`/awesome-admin chat <text>` — Sende eine Nachricht an den Ingame-Chat\n"
-            "`/awesome-admin rcon <cmd>` — Führe einen beliebigen RCON-Befehl aus"
         ),
         inline=False,
     )
