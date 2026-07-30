@@ -40,7 +40,7 @@ HERMES_BOT_ID       = 1525423361600126977
 # ── Referral bonus ───────────────────────────────────────────────────────────
 REFERRAL_BONUS_COINS   = 300   # Coins credited to the inviter per new, unique referral
 REFERRAL_MIN_ACCOUNT_AGE_DAYS = 3   # invited account must be at least this old — blocks disposable alt accounts
-REFERRAL_LOG_CHANNEL   = "🔧｜server-changes"  # optional: quiet log of every referral (reuses existing channel)
+REFERRAL_LOG_CHANNEL   = SHOUTOUTS_CHANNEL  # referral shoutouts post in the same public channel as rank-ups/VIP boosts
 
 # ── Message-based tier progression ─────────────────────────────────────────
 TIER_ROLES = [
@@ -2793,8 +2793,7 @@ async def on_member_join(member: discord.Member):
     if log_ch:
         try:
             await log_ch.send(
-                f"🔥 Referral: <@{inviter_id}> invited **{member.display_name}** "
-                f"(`{member.id}`) — {REFERRAL_BONUS_COINS} Coins credited."
+                f"📣 Shoutout to <@{inviter_id}> for referring **{member.display_name}** to the server! 🔥"
             )
         except discord.HTTPException:
             pass
