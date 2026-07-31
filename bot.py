@@ -2803,7 +2803,7 @@ async def grant_tier_reward(discord_id: str, amount: int, tier_name: str):
             async with session.post(
                 f"{SHOP_API_URL}/api/admin/grant-coins",
                 headers=headers,
-                json={"discordId": discord_id, "amount": amount},
+                json={"discordId": discord_id, "amount": amount, "reason": "tier_reward"},
                 timeout=10,
             ) as resp:
                 if resp.status != 200:
@@ -2887,7 +2887,7 @@ async def grant_referral_reward(inviter_discord_id: str, invited_display_name: s
             async with session.post(
                 f"{SHOP_API_URL}/api/admin/grant-coins",
                 headers=headers,
-                json={"discordId": inviter_discord_id, "amount": REFERRAL_BONUS_COINS},
+                json={"discordId": inviter_discord_id, "amount": REFERRAL_BONUS_COINS, "reason": "referral"},
                 timeout=10,
             ) as resp:
                 if resp.status != 200:
