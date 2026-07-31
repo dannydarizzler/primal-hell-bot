@@ -2695,6 +2695,53 @@ async def sync_vip_roles_on_startup():
             await push_vip_status_to_shop(str(member.id), True)
 
 
+async def sync_hall_of_fame_on_startup():
+    """One-time catch-up on bot startup: backfills anyone who already holds the
+    Deathknight Slayer role but isn't in the Hall of Fame yet — e.g. they earned
+    it before this feature existed, or while the bot was offline (on_member_update
+    only catches *live* role changes going forward).
+
+    Best-effort recovers the real order they earned it in from the audit log —
+    Discord only retains ~45 days of audit log entries and requires the bot to
+    have "View Audit Log" permission, so this may not be available. Anyone that
+    can't be matched to an audit log entry is appended after the ones that can,
+    in whatever order the API happened to return them — NOT guaranteed to be
+    the true chronological order. Does not touch anyone already recorded."""
+    await client.wait_until_ready()
+    for guild in client.guilds:
+        role = discord.utils.get(guild.roles, name=DEATHKNIGHT_SLAYER_ROLE)
+        if not role or not role.members:
+            continue
+
+        existing_ids = {discord_id for discord_id, _ in db_get_hall_of_fame()}
+        missing_members = [m for m in role.members if str(m.id) not in existing_ids]
+        if not missing_members:
+            continue
+
+        earned_at = {}
+        try:
+            async for entry in guild.audit_logs(limit=500, action=discord.AuditLogAction.member_role_update):
+                after_roles = getattr(entry.after, "roles", None) or []
+                if entry.target and any(r.id == role.id for r in after_roles):
+                    if entry.target.id not in earned_at:
+                        earned_at[entry.target.id] = entry.created_at.timestamp()
+        except discord.Forbidden:
+            print("⚠️ Missing 'View Audit Log' permission — Hall of Fame backfill order is not guaranteed accurate.")
+        except discord.HTTPException as e:
+            print(f"⚠️ Could not read audit log for Hall of Fame backfill: {e}")
+
+        # Members with a recovered audit-log timestamp are ordered correctly;
+        # anyone without one (grant older than ~45 days, or no permission) is
+        # placed after them, in unspecified order.
+        missing_members.sort(key=lambda m: earned_at.get(m.id, float("inf")))
+
+        for member in missing_members:
+            is_new, rank = db_record_hall_of_fame(str(member.id))
+            if is_new:
+                confirmed = "confirmed via audit log" if member.id in earned_at else "order NOT confirmed"
+                print(f"👑 Hall of Fame backfill: {member.display_name} — rank #{rank} ({confirmed})")
+
+
 # ── Discord-activity tier reward: direct Coin credit (no promo code needed) ────
 async def grant_tier_reward(discord_id: str, amount: int, tier_name: str):
     """Directly credits Coins to the player's shop balance for reaching a new
@@ -3061,6 +3108,16 @@ async def on_ready():
         synced = await tree.sync(guild=SYNC_GUILD)
         print(f"✅ Commands synced to guild {GUILD_ID} — {len(synced)} command(s) registered:")
         print(", ".join(sorted(c.name for c in synced)))
+
+        # One-time cleanup: an old global sync from before guild-only syncing
+        # was introduced left every command *also* registered globally, which
+        # made Discord show each command twice (once global, once guild-scoped).
+        # This wipes the stale global registration. Global changes can take up
+        # to ~1 hour to fully disappear from Discord's client cache even after
+        # this runs, so don't worry if duplicates linger briefly right after deploy.
+        tree.clear_commands(guild=None)
+        cleared = await tree.sync()
+        print(f"🧹 Cleared stale global commands ({len(cleared)} remain globally — should be 0).")
     else:
         synced = await tree.sync()
         print(f"✅ Commands synced globally (may take up to 1 hour to appear) — {len(synced)} command(s) registered:")
@@ -3085,6 +3142,7 @@ async def on_ready():
         asyncio.create_task(sync_shop_redemptions())
         asyncio.create_task(sync_shop_vip_spins())
         asyncio.create_task(sync_vip_roles_on_startup())
+        asyncio.create_task(sync_hall_of_fame_on_startup())
 
     # Snapshot every guild's current invites so the referral system has a
     # baseline to diff against on the next member join
