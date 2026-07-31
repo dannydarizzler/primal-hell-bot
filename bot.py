@@ -63,7 +63,7 @@ TIER_ROLES = [
 # ── ARK Server Status (RCON) ────────────────────────────────────────────────
 ARK_HOST          = os.environ.get("ARK_HOST", "31.214.216.227")
 ARK_RCON_PORT     = int(os.environ.get("ARK_RCON_PORT", "11690"))
-ARK_RCON_PASSWORD = os.environ.get("ARK_RCON_PASSWORD", "dm7op")
+ARK_RCON_PASSWORD = os.environ.get("ARK_RCON_PASSWORD", "xezfcd")
 ARK_MAP_NAME      = os.environ.get("ARK_MAP_NAME", "Ragnarok")
 ARK_MAX_PLAYERS   = os.environ.get("ARK_MAX_PLAYERS", "20")
 ARK_SERVER_NAME   = os.environ.get("ARK_SERVER_NAME", "#Primal-hell-5x-Chaos-Modded")
