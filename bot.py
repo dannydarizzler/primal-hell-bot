@@ -73,7 +73,7 @@ DROPS = {
         "label": "⚪ White — Starter Kit",
         "normal": (
             "**✅ Guaranteed:**\n"
-            "• Toxic Hide Armor (5 pieces)\n"
+            "• Alpha Flak Set (5 pieces)\n"
             "• 10x Bola\n"
             "• Toxic Pick\n"
             "• Toxic Hatchet\n"
@@ -527,28 +527,21 @@ async def armor_command(interaction: discord.Interaction):
         name="1️⃣ Hide Toxic — Starter (Lvl 3, 400 armor/set)",
         value=(
             "Basic protection for early game survival.\n"
-            "Available from the ⚪ **White drop**."
+            "*Not currently obtainable from any Primal Hell drop.*"
         ),
         inline=False,
     )
     embed.add_field(
-        name="2️⃣ Alpha Chitin — Early Alpha (Lvl 37, 1250 armor/set)",
+        name="2️⃣ Alpha Flak — Alpha Tier (Lvl 56, 2500 armor/set)",
         value=(
-            "Bridges the gap between Toxic Hide and Alpha Flak.\n"
-            "*Not currently obtainable from any Primal Hell drop — will be added once confirmed available.*"
+            "Solid mid-game armor.\n"
+            "Guaranteed from the ⚪ **White drop**, also possible from the 🔵 **Blue drop** gear pool "
+            "(Blueprint chance in Double crates only)."
         ),
         inline=False,
     )
     embed.add_field(
-        name="3️⃣ Alpha Flak — Alpha Tier (Lvl 56, 2500 armor/set)",
-        value=(
-            "Solid mid-game armor, upgrade from Toxic Hide.\n"
-            "Possible from the 🔵 **Blue drop** gear pool (Blueprint chance in Double crates only)."
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="4️⃣ Volcanic Flak — Volcanic Tier (Lvl 56, 5000 armor/set)",
+        name="3️⃣ Volcanic Flak — Volcanic Tier (Lvl 56, 5000 armor/set)",
         value=(
             "Strong late-game armor with improved stats.\n"
             "Possible from the 🔵 **Blue drop** gear pool (Blueprint chance in Double crates only)."
@@ -556,7 +549,7 @@ async def armor_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="5️⃣ Mythic Flak — Mythic Tier ⭐ (Lvl 56, 12500 armor/set)",
+        name="4️⃣ Mythic Flak — Mythic Tier ⭐ (Lvl 56, 12500 armor/set)",
         value=(
             "High-end armor with piece-specific passive perks.\n"
             "Available from the 🔴 **Red drop** (Blueprint, Double only).\n\n"
@@ -569,7 +562,7 @@ async def armor_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="6️⃣ Legend Riot — Legend Tier ⭐⭐ (Lvl 98, 15000 armor/set)",
+        name="5️⃣ Legend Riot — Legend Tier ⭐⭐ (Lvl 98, 15000 armor/set)",
         value=(
             "Top-tier craftable armor with the strongest passive perks.\n"
             "Available from the 🔴 **Red drop** (Blueprint, Double only).\n\n"
@@ -582,7 +575,7 @@ async def armor_command(interaction: discord.Interaction):
         inline=False,
     )
     embed.add_field(
-        name="7️⃣ DeathKnight — Endgame Boss Armor ⭐⭐⭐ (20000 armor/set)",
+        name="6️⃣ DeathKnight — Endgame Boss Armor ⭐⭐⭐ (20000 armor/set)",
         value=(
             "The strongest armor in Primal Chaos — unbreakable, with the same perk spread "
             "as Legend Riot but at a higher tier.\n"
@@ -600,7 +593,6 @@ async def armor_command(interaction: discord.Interaction):
         name="📊 Base Stats — Armor Values (per full set / per piece)",
         value=(
             "• Toxic Hide → 400 *(80/piece)*\n"
-            "• Alpha Chitin → 1250 *(250/piece)*\n"
             "• Alpha Flak → 2500 *(500/piece)*\n"
             "• Volcanic Flak → 5000 *(1000/piece)*\n"
             "• Mythic Flak → 12500 *(2500/piece)*\n"
@@ -705,7 +697,8 @@ async def boss_fight_command(interaction: discord.Interaction):
 
 # ── /wipe ──────────────────────────────────────────────────────────────────────
 @tree.command(name="wipe", description="[Admin only] Announce an upcoming wild dino wipe in #announcements")
-async def wipe_command(interaction: discord.Interaction):
+@app_commands.describe(minutes="How many minutes until the wipe happens? e.g. 15")
+async def wipe_command(interaction: discord.Interaction, minutes: app_commands.Range[int, 1, 1440]):
     role = discord.utils.get(interaction.guild.roles, name=WIPE_ROLE)
     if role not in interaction.user.roles:
         await interaction.response.send_message(
@@ -722,10 +715,11 @@ async def wipe_command(interaction: discord.Interaction):
         )
         return
 
+    minute_word = "Minute" if minutes == 1 else "Minutes"
     embed = discord.Embed(
-        title="⚠️ Wild Dino Wipe — 15 Minute Warning",
+        title=f"⚠️ Wild Dino Wipe — {minutes} {minute_word} Warning",
         description=(
-            "**A wild dino wipe will take place in 15 minutes.**\n\n"
+            f"**A wild dino wipe will take place in {minutes} {minute_word.lower()}.**\n\n"
             "All wild dinosaurs on the map will be removed and will begin respawning shortly after. "
             "This is a routine reset to restore creature spawns that are no longer appearing in the world.\n\n"
             "Please make sure your tames are secured before the wipe takes place.\n"
@@ -900,25 +894,14 @@ async def end_custom_event_after(message: discord.Message, embed: discord.Embed,
         pass
 
 
-# ── /event-100 ────────────────────────────────────────────────────────────────────
-@tree.command(name="event-100", description="[Admin only] Start a 1-100 guessing giveaway with a custom prize")
-@app_commands.describe(prize="What does the winner get? e.g. '500 Primal Coins' or a Nightmare Breedpair")
-async def event_100_command(interaction: discord.Interaction, prize: str):
-    await start_guess_event(interaction, 100, prize)
-
-
-# ── /event-500 ────────────────────────────────────────────────────────────────────
-@tree.command(name="event-500", description="[Admin only] Start a 1-500 guessing giveaway with a custom prize")
-@app_commands.describe(prize="What does the winner get? e.g. '1,000 Primal Coins' or an Origin Token")
-async def event_500_command(interaction: discord.Interaction, prize: str):
-    await start_guess_event(interaction, 500, prize)
-
-
-# ── /event-1000 ───────────────────────────────────────────────────────────────────
-@tree.command(name="event-1000", description="[Admin only] Start a 1-1000 guessing giveaway with a custom prize")
-@app_commands.describe(prize="What does the winner get? e.g. '2,000 Primal Coins' or Instant Ascension")
-async def event_1000_command(interaction: discord.Interaction, prize: str):
-    await start_guess_event(interaction, 1000, prize)
+# ── /event-numbers ────────────────────────────────────────────────────────────────
+@tree.command(name="event-numbers", description="[Admin only] Start a number-guessing giveaway with a custom range and prize")
+@app_commands.describe(
+    range_max="Players guess a number from 1 up to this (e.g. 100, 500, 1000)",
+    prize="What does the winner get? e.g. '500 Primal Coins' or a Nightmare Breedpair",
+)
+async def event_numbers_command(interaction: discord.Interaction, range_max: app_commands.Range[int, 2, 1000000], prize: str):
+    await start_guess_event(interaction, range_max, prize)
 
 
 # ── Giveaway System ─────────────────────────────────────────────────────────────
@@ -1670,48 +1653,12 @@ async def fix_discord_id_command(interaction: discord.Interaction, old_id: str, 
     )
 
 
-# ── /set-vip ──────────────────────────────────────────────────────────────────
-@tree.command(name="set-vip", description="[Admin only] Give or remove VIP status on a player's shop account")
-@app_commands.describe(player="The player to update", vip="Turn VIP status on or off")
-@app_commands.choices(vip=[
-    app_commands.Choice(name="On — grant VIP", value="on"),
-    app_commands.Choice(name="Off — remove VIP", value="off"),
-])
-async def set_vip_command(interaction: discord.Interaction, player: discord.Member, vip: app_commands.Choice[str]):
-    user_role_names = {role.name for role in interaction.user.roles}
-    if not user_role_names.intersection(ADMIN_ITEM_ROLES):
-        roles_text = " / ".join(ADMIN_ITEM_ROLES)
-        await interaction.response.send_message(f"❌ Only **{roles_text}** can set VIP status.", ephemeral=True)
-        return
-
-    if not SHOP_API_URL or not BOT_SYNC_SECRET:
-        await interaction.response.send_message("❌ Shop sync is not configured (SHOP_API_URL / BOT_SYNC_SECRET missing).", ephemeral=True)
-        return
-
-    await interaction.response.defer(ephemeral=True)
-
-    headers = {"x-bot-secret": BOT_SYNC_SECRET}
-    body = {"discordId": str(player.id), "isVip": vip.value == "on"}
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(f"{SHOP_API_URL}/api/admin/set-vip", headers=headers, json=body, timeout=10) as resp:
-                data = await resp.json()
-                if resp.status != 200:
-                    await interaction.followup.send(f"❌ {data.get('error', 'Could not update VIP status.')}", ephemeral=True)
-                    return
-    except Exception as e:
-        await interaction.followup.send(f"❌ Could not reach the shop: {e}", ephemeral=True)
-        return
-
-    status_text = "granted ✅" if vip.value == "on" else "removed"
-    await interaction.followup.send(f"💎 VIP status for {player.mention} has been **{status_text}**.", ephemeral=True)
-
-
 # ── /create-promo & /list-promos ────────────────────────────────────────────────
-PROMO_ADMIN_ROLES = ["Admin", "Owner"]  # only these roles can create/view promo codes
+PROMO_ADMIN_ROLES = ["Admin", "Owner"]  # only these roles can view promo codes
+OWNER_ONLY_ROLES = ["Owner"]  # only this role can create/delete/cleanup promo codes
 
 
-@tree.command(name="create-promo", description="[Admin only] Create a promo code — a top-up bonus % or a flat Coin reward")
+@tree.command(name="create-promo", description="[Owner only] Create a promo code — a top-up bonus % or a flat Coin reward")
 @app_commands.describe(
     code="The code players will enter, e.g. BONUS20 or REWARD1000",
     type="Bonus = extra % on a Coin top-up. Reward = flat Coins, redeemable directly, no purchase needed.",
@@ -1732,8 +1679,8 @@ async def create_promo_command(
     max_uses: int = None,
 ):
     user_role_names = {role.name for role in interaction.user.roles}
-    if not user_role_names.intersection(PROMO_ADMIN_ROLES):
-        roles_text = " / ".join(PROMO_ADMIN_ROLES)
+    if not user_role_names.intersection(OWNER_ONLY_ROLES):
+        roles_text = " / ".join(OWNER_ONLY_ROLES)
         await interaction.response.send_message(f"❌ Only **{roles_text}** can create promo codes.", ephemeral=True)
         return
 
@@ -1830,12 +1777,12 @@ async def list_promos_command(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-@tree.command(name="delete-promo", description="[Admin only] Delete a single promo code by its code")
+@tree.command(name="delete-promo", description="[Owner only] Delete a single promo code by its code")
 @app_commands.describe(code="The exact promo code to delete, e.g. BONUS20")
 async def delete_promo_command(interaction: discord.Interaction, code: str):
     user_role_names = {role.name for role in interaction.user.roles}
-    if not user_role_names.intersection(PROMO_ADMIN_ROLES):
-        roles_text = " / ".join(PROMO_ADMIN_ROLES)
+    if not user_role_names.intersection(OWNER_ONLY_ROLES):
+        roles_text = " / ".join(OWNER_ONLY_ROLES)
         await interaction.response.send_message(f"❌ Only **{roles_text}** can delete promo codes.", ephemeral=True)
         return
 
@@ -1862,11 +1809,11 @@ async def delete_promo_command(interaction: discord.Interaction, code: str):
     await interaction.followup.send(f"🗑️ Promo code **{code}** has been deleted.", ephemeral=True)
 
 
-@tree.command(name="cleanup-promos", description="[Admin only] Delete all expired or fully-used promo codes to keep the list clean")
+@tree.command(name="cleanup-promos", description="[Owner only] Delete all expired or fully-used promo codes to keep the list clean")
 async def cleanup_promos_command(interaction: discord.Interaction):
     user_role_names = {role.name for role in interaction.user.roles}
-    if not user_role_names.intersection(PROMO_ADMIN_ROLES):
-        roles_text = " / ".join(PROMO_ADMIN_ROLES)
+    if not user_role_names.intersection(OWNER_ONLY_ROLES):
+        roles_text = " / ".join(OWNER_ONLY_ROLES)
         await interaction.response.send_message(f"❌ Only **{roles_text}** can clean up promo codes.", ephemeral=True)
         return
 
@@ -2001,8 +1948,7 @@ async def post_vip_embed_command(interaction: discord.Interaction, channel: disc
     embed.add_field(
         name="📌 Things To Know",
         value=(
-            "**·** VIP perks are removed automatically once your Boost expires or is cancelled\n"
-            "**·** Primal Coins don't carry over — unused Coins reset each month"
+            "**·** VIP perks are removed automatically once your Boost expires or is cancelled"
         ),
         inline=False,
     )
@@ -2107,7 +2053,7 @@ async def admin_commands_command(interaction: discord.Interaction):
     embed.add_field(
         name="📢 Announcements",
         value=(
-            "`/wipe` — Announce a wild dino wipe in #announcements\n"
+            "`/wipe <minutes>` — Announce a wild dino wipe in #announcements\n"
             "`/post-shop-embed` — Post the Shop announcement embed\n"
             "`/post-vip-embed` — Post the VIP Status info embed\n"
             "`/post-server-rules` — Post the Server Rules embed"
@@ -2119,7 +2065,7 @@ async def admin_commands_command(interaction: discord.Interaction):
         value=(
             "`/giveaway-start` — Start a giveaway in #giveaways\n"
             "`/vip-giveaway-start` — Start a giveaway in #vip-giveaways\n"
-            "`/event-100` / `/event-500` / `/event-1000` — Number-guess giveaways with a custom prize\n"
+            "`/event-numbers` — Number-guess giveaway with a custom range & prize\n"
             "`/poll` — Create a poll in #polls"
         ),
         inline=False,
@@ -2135,10 +2081,10 @@ async def admin_commands_command(interaction: discord.Interaction):
     embed.add_field(
         name="🎟️ Promo Codes",
         value=(
-            "`/create-promo` — Create a Bonus (%) or Reward (flat Coins) code\n"
             "`/list-promos` — View all promo codes and their usage\n"
-            "`/delete-promo <code>` — Delete one specific promo code\n"
-            "`/cleanup-promos` — Delete all expired or fully-used codes at once"
+            "`/create-promo` — **Owner only** — Create a Bonus (%) or Reward (flat Coins) code\n"
+            "`/delete-promo <code>` — **Owner only** — Delete one specific promo code\n"
+            "`/cleanup-promos` — **Owner only** — Delete all expired or fully-used codes at once"
         ),
         inline=False,
     )
@@ -2192,48 +2138,6 @@ async def whoami_command(interaction: discord.Interaction):
         title="🪪 Your Discord User ID",
         description=f"`{interaction.user.id}`\n\nUse this ID when creating your account on the [Primal Hell Shop]({SHOP_PUBLIC_URL}).",
         color=discord.Color.orange(),
-    )
-    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-# ── /message-count ────────────────────────────────────────────────────────────────
-@tree.command(name="message-count", description="[Admin only] Check a user's message count")
-@app_commands.describe(user="User ID, mention, or username to check")
-async def message_count_command(interaction: discord.Interaction, user: str):
-    if not any(r.name in ("Admin", "Owner") for r in interaction.user.roles):
-        await interaction.response.send_message("❌ Only **Admin** or **Owner** can use this command.", ephemeral=True)
-        return
-    
-    # Parse user ID from mention, ID string, or username
-    user_id = None
-    if user.startswith("<@") and user.endswith(">"):
-        user_id = user[2:-1].replace("!", "")
-    elif user.isdigit():
-        user_id = user
-    else:
-        # Try to find by username in guild
-        member = discord.utils.get(interaction.guild.members, name=user) or discord.utils.get(interaction.guild.members, display_name=user)
-        if member:
-            user_id = str(member.id)
-    
-    if not user_id:
-        await interaction.response.send_message("❌ Could not find user. Use ID, mention, or exact username.", ephemeral=True)
-        return
-    
-    conn = sqlite3.connect(DB_PATH)
-    row = conn.execute("SELECT count FROM message_counts WHERE discord_id = ?", (user_id,)).fetchone()
-    conn.close()
-    count = row[0] if row else 0
-    
-    # Try to get display name
-    member = interaction.guild.get_member(int(user_id))
-    display = member.display_name if member else f"Unknown ({user_id})"
-    
-    embed = discord.Embed(
-        title="💬 Message Count",
-        description=f"**{display}** has sent **{count:,}** messages.",
-        color=discord.Color.blue(),
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -2314,13 +2218,16 @@ BOT_SYNC_SECRET    = os.environ.get("BOT_SYNC_SECRET", "")
 SHOP_SYNC_INTERVAL = int(os.environ.get("SHOP_SYNC_INTERVAL", "30"))  # seconds
 
 
-async def sync_shop_purchases():
-    """Background loop: periodically pulls completed-but-unprocessed purchases
-    from the shop server and credits the coins to the buyer here in the bot."""
+async def _sync_shop_loop(pending_path: str, mark_path_template: str, process_item, log_label: str, disabled_label: str):
+    """Generic background loop shared by all shop → bot notification syncs.
+    Polls `pending_path` every SHOP_SYNC_INTERVAL seconds, marks each item
+    processed via `mark_path_template` (idempotency first), then lets
+    `process_item(item)` apply any side effects (e.g. crediting coins) and
+    return the discord.Embed to DM the affected player."""
     await client.wait_until_ready()
 
     if not SHOP_API_URL or not BOT_SYNC_SECRET:
-        print("⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — shop coin sync is disabled.")
+        print(f"⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — {disabled_label} sync is disabled.")
         return
 
     headers = {"x-bot-secret": BOT_SYNC_SECRET}
@@ -2328,219 +2235,120 @@ async def sync_shop_purchases():
     async with aiohttp.ClientSession() as session:
         while not client.is_closed():
             try:
-                async with session.get(f"{SHOP_API_URL}/api/bot/pending-purchases", headers=headers, timeout=10) as resp:
+                async with session.get(f"{SHOP_API_URL}{pending_path}", headers=headers, timeout=10) as resp:
                     if resp.status != 200:
-                        print(f"⚠️ Shop sync: unexpected status {resp.status}")
+                        print(f"⚠️ {log_label} sync: unexpected status {resp.status}")
                         await asyncio.sleep(SHOP_SYNC_INTERVAL)
                         continue
-                    purchases = await resp.json()
+                    items = await resp.json()
 
-                for purchase in purchases:
-                    discord_id = purchase["discord_id"]
-                    coins = purchase["coins"]
-                    new_balance = db_add_coins(discord_id, coins)
+                for item in items:
+                    discord_id = item["discord_id"]
 
                     # Mark as processed first (idempotency > notification delivery)
                     async with session.post(
-                        f"{SHOP_API_URL}/api/bot/mark-processed/{purchase['id']}",
+                        f"{SHOP_API_URL}{mark_path_template.format(id=item['id'])}",
                         headers=headers,
                         timeout=10,
                     ):
                         pass
 
-                    # Best-effort DM to the buyer
+                    embed = process_item(item)
+                    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+
                     try:
                         user = await client.fetch_user(int(discord_id))
-                        embed = discord.Embed(
-                            title="🔥 Coins gutgeschrieben!",
-                            description=(
-                                f"Deine Zahlung wurde bestätigt — **{coins:,} Coins** wurden deinem Konto gutgeschrieben.\n\n"
-                                f"Neues Guthaben: **{new_balance:,} Coins**"
-                            ),
-                            color=discord.Color.orange(),
-                        )
-                        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
                         await user.send(embed=embed)
                     except Exception as dm_err:
-                        print(f"ℹ️ Could not DM user {discord_id} about their coin top-up: {dm_err}")
-
-                    print(f"✅ Credited {coins} coins to {discord_id} (new balance: {new_balance})")
+                        print(f"ℹ️ Could not DM user {discord_id} about their {log_label.lower()}: {dm_err}")
 
             except Exception as e:
-                print(f"⚠️ Shop sync error: {e}")
+                print(f"⚠️ {log_label} sync error: {e}")
 
             await asyncio.sleep(SHOP_SYNC_INTERVAL)
+
+
+def _process_purchase(item: dict) -> discord.Embed:
+    discord_id, coins = item["discord_id"], item["coins"]
+    new_balance = db_add_coins(discord_id, coins)
+    print(f"✅ Credited {coins} coins to {discord_id} (new balance: {new_balance})")
+    return discord.Embed(
+        title="🔥 Coins gutgeschrieben!",
+        description=(
+            f"Deine Zahlung wurde bestätigt — **{coins:,} Coins** wurden deinem Konto gutgeschrieben.\n\n"
+            f"Neues Guthaben: **{new_balance:,} Coins**"
+        ),
+        color=discord.Color.orange(),
+    )
+
+
+def _process_spin(item: dict, vip: bool = False) -> discord.Embed:
+    discord_id, amount, is_jackpot = item["discord_id"], item["amount"], bool(item["jackpot"])
+    if vip:
+        title = "🎉 VIP JACKPOT!" if is_jackpot else "💎 VIP Lucky Wheel Win!"
+        color = discord.Color.purple()
+        label, log_icon = "VIP Lucky Wheel", "💎"
+    else:
+        title = "🎉 JACKPOT!" if is_jackpot else "🎡 Lucky Wheel Win!"
+        color = discord.Color.gold() if is_jackpot else discord.Color.orange()
+        label, log_icon = "Lucky Wheel", "🎡"
+    print(f"{log_icon} {label}: {discord_id} won {amount} coins (jackpot={is_jackpot})")
+    return discord.Embed(
+        title=title,
+        description=(
+            f"Congratulations, you have won **{amount:,} Primal Coins** on the {label}!\n\n"
+            "Spin again in 24 hours."
+        ),
+        color=color,
+    )
+
+
+def _process_redemption(item: dict) -> discord.Embed:
+    discord_id, amount, code = item["discord_id"], item["amount"], item["code"]
+    print(f"🎟️ Promo redeemed: {discord_id} used {code} for {amount} coins")
+    return discord.Embed(
+        title="🎟️ Promo Code Redeemed!",
+        description=(
+            f"Congratulations, code **{code}** has credited you **{amount:,} Primal Coins**!\n\n"
+            "Check your balance in the Shop or with `/balance`."
+        ),
+        color=discord.Color.green(),
+    )
+
+
+async def sync_shop_purchases():
+    """Background loop: periodically pulls completed-but-unprocessed purchases
+    from the shop server and credits the coins to the buyer here in the bot."""
+    await _sync_shop_loop(
+        "/api/bot/pending-purchases", "/api/bot/mark-processed/{id}",
+        _process_purchase, "Shop", "shop coin",
+    )
 
 
 async def sync_shop_spins():
     """Background loop: periodically pulls Lucky Wheel spins that haven't been
     DMed yet, and sends the winner a congratulations message."""
-    await client.wait_until_ready()
-
-    if not SHOP_API_URL or not BOT_SYNC_SECRET:
-        print("⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — Lucky Wheel DM sync is disabled.")
-        return
-
-    headers = {"x-bot-secret": BOT_SYNC_SECRET}
-
-    async with aiohttp.ClientSession() as session:
-        while not client.is_closed():
-            try:
-                async with session.get(f"{SHOP_API_URL}/api/bot/pending-spins", headers=headers, timeout=10) as resp:
-                    if resp.status != 200:
-                        print(f"⚠️ Spin sync: unexpected status {resp.status}")
-                        await asyncio.sleep(SHOP_SYNC_INTERVAL)
-                        continue
-                    spins = await resp.json()
-
-                for spin in spins:
-                    discord_id = spin["discord_id"]
-                    amount = spin["amount"]
-                    is_jackpot = bool(spin["jackpot"])
-
-                    # Mark as notified first (idempotency > notification delivery)
-                    async with session.post(
-                        f"{SHOP_API_URL}/api/bot/mark-spin-notified/{spin['id']}",
-                        headers=headers,
-                        timeout=10,
-                    ):
-                        pass
-
-                    try:
-                        user = await client.fetch_user(int(discord_id))
-                        title = "🎉 JACKPOT!" if is_jackpot else "🎡 Lucky Wheel Win!"
-                        embed = discord.Embed(
-                            title=title,
-                            description=(
-                                f"Congratulations, you have won **{amount:,} Primal Coins** on the Lucky Wheel!\n\n"
-                                "Spin again in 24 hours."
-                            ),
-                            color=discord.Color.gold() if is_jackpot else discord.Color.orange(),
-                        )
-                        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-                        await user.send(embed=embed)
-                    except Exception as dm_err:
-                        print(f"ℹ️ Could not DM user {discord_id} about their Lucky Wheel win: {dm_err}")
-
-                    print(f"🎡 Lucky Wheel: {discord_id} won {amount} coins (jackpot={is_jackpot})")
-
-            except Exception as e:
-                print(f"⚠️ Spin sync error: {e}")
-
-            await asyncio.sleep(SHOP_SYNC_INTERVAL)
+    await _sync_shop_loop(
+        "/api/bot/pending-spins", "/api/bot/mark-spin-notified/{id}",
+        _process_spin, "Spin", "Lucky Wheel DM",
+    )
 
 
 async def sync_shop_redemptions():
     """Background loop: periodically pulls reward-code redemptions that haven't
     been DMed yet, and sends the player a confirmation of their free Coins."""
-    await client.wait_until_ready()
-
-    if not SHOP_API_URL or not BOT_SYNC_SECRET:
-        print("⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — promo redemption DM sync is disabled.")
-        return
-
-    headers = {"x-bot-secret": BOT_SYNC_SECRET}
-
-    async with aiohttp.ClientSession() as session:
-        while not client.is_closed():
-            try:
-                async with session.get(f"{SHOP_API_URL}/api/bot/pending-redemptions", headers=headers, timeout=10) as resp:
-                    if resp.status != 200:
-                        print(f"⚠️ Redemption sync: unexpected status {resp.status}")
-                        await asyncio.sleep(SHOP_SYNC_INTERVAL)
-                        continue
-                    redemptions = await resp.json()
-
-                for redemption in redemptions:
-                    discord_id = redemption["discord_id"]
-                    amount = redemption["amount"]
-                    code = redemption["code"]
-
-                    # Mark as notified first (idempotency > notification delivery)
-                    async with session.post(
-                        f"{SHOP_API_URL}/api/bot/mark-redemption-notified/{redemption['id']}",
-                        headers=headers,
-                        timeout=10,
-                    ):
-                        pass
-
-                    try:
-                        user = await client.fetch_user(int(discord_id))
-                        embed = discord.Embed(
-                            title="🎟️ Promo Code Redeemed!",
-                            description=(
-                                f"Congratulations, code **{code}** has credited you **{amount:,} Primal Coins**!\n\n"
-                                "Check your balance in the Shop or with `/balance`."
-                            ),
-                            color=discord.Color.green(),
-                        )
-                        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-                        await user.send(embed=embed)
-                    except Exception as dm_err:
-                        print(f"ℹ️ Could not DM user {discord_id} about their promo redemption: {dm_err}")
-
-                    print(f"🎟️ Promo redeemed: {discord_id} used {code} for {amount} coins")
-
-            except Exception as e:
-                print(f"⚠️ Redemption sync error: {e}")
-
-            await asyncio.sleep(SHOP_SYNC_INTERVAL)
+    await _sync_shop_loop(
+        "/api/bot/pending-redemptions", "/api/bot/mark-redemption-notified/{id}",
+        _process_redemption, "Redemption", "promo redemption DM",
+    )
 
 
 async def sync_shop_vip_spins():
     """Background loop: same as sync_shop_spins, but for the VIP Lucky Wheel."""
-    await client.wait_until_ready()
-
-    if not SHOP_API_URL or not BOT_SYNC_SECRET:
-        print("⚠️ SHOP_API_URL / BOT_SYNC_SECRET not set — VIP Lucky Wheel DM sync is disabled.")
-        return
-
-    headers = {"x-bot-secret": BOT_SYNC_SECRET}
-
-    async with aiohttp.ClientSession() as session:
-        while not client.is_closed():
-            try:
-                async with session.get(f"{SHOP_API_URL}/api/bot/pending-vip-spins", headers=headers, timeout=10) as resp:
-                    if resp.status != 200:
-                        print(f"⚠️ VIP spin sync: unexpected status {resp.status}")
-                        await asyncio.sleep(SHOP_SYNC_INTERVAL)
-                        continue
-                    spins = await resp.json()
-
-                for spin in spins:
-                    discord_id = spin["discord_id"]
-                    amount = spin["amount"]
-                    is_jackpot = bool(spin["jackpot"])
-
-                    async with session.post(
-                        f"{SHOP_API_URL}/api/bot/mark-vip-spin-notified/{spin['id']}",
-                        headers=headers,
-                        timeout=10,
-                    ):
-                        pass
-
-                    try:
-                        user = await client.fetch_user(int(discord_id))
-                        title = "🎉 VIP JACKPOT!" if is_jackpot else "💎 VIP Lucky Wheel Win!"
-                        embed = discord.Embed(
-                            title=title,
-                            description=(
-                                f"Congratulations, you have won **{amount:,} Primal Coins** on the VIP Lucky Wheel!\n\n"
-                                "Spin again in 24 hours."
-                            ),
-                            color=discord.Color.purple(),
-                        )
-                        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-                        await user.send(embed=embed)
-                    except Exception as dm_err:
-                        print(f"ℹ️ Could not DM user {discord_id} about their VIP Lucky Wheel win: {dm_err}")
-
-                    print(f"💎 VIP Lucky Wheel: {discord_id} won {amount} coins (jackpot={is_jackpot})")
-
-            except Exception as e:
-                print(f"⚠️ VIP spin sync error: {e}")
-
-            await asyncio.sleep(SHOP_SYNC_INTERVAL)
+    await _sync_shop_loop(
+        "/api/bot/pending-vip-spins", "/api/bot/mark-vip-spin-notified/{id}",
+        lambda item: _process_spin(item, vip=True), "VIP spin", "VIP Lucky Wheel DM",
+    )
 
 
 async def push_vip_status_to_shop(discord_id: str, is_vip: bool):
