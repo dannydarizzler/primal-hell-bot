@@ -3052,6 +3052,12 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 async def on_ready():
     client.add_view(GiveawayView())
     if SYNC_GUILD:
+        # Every @tree.command() above registers globally by default. Guild-scoped
+        # sync only pushes commands that exist in the tree's *guild* scope — so
+        # without this copy step, tree.sync(guild=...) always pushes an empty
+        # list and silently wipes/no-ops the guild's command set. This is what
+        # was happening: 0 commands registered every single startup.
+        tree.copy_global_to(guild=SYNC_GUILD)
         synced = await tree.sync(guild=SYNC_GUILD)
         print(f"✅ Commands synced to guild {GUILD_ID} — {len(synced)} command(s) registered:")
         print(", ".join(sorted(c.name for c in synced)))
