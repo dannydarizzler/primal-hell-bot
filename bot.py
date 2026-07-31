@@ -73,7 +73,7 @@ DROPS = {
     "white": {
         "label": "⚪ White — Starter Kit",
         "normal": (
-            "• Toxic Hide Armor (5 pieces)\n"
+            "• Alpha Flak Armor (5 pieces)\n"
             "• 10x Bola\n"
             "• Toxic Pick\n"
             "• Toxic Hatchet\n"
