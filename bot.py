@@ -965,9 +965,10 @@ def init_db():
             rewarded_at REAL NOT NULL
         )
     """)
-    # ── Hall of Fame — Deathknight Slayer role, ordered by first achievement.
-    # discord_id is UNIQUE so re-losing/re-earning the role never creates a
-    # second entry or changes someone's original rank. ─────────────────────
+    # ── Hall of Fame — Deathknight Slayer role, ranked by speedrun time
+    # (days between joining the server and earning the role — fewer days is
+    # better). discord_id is UNIQUE so re-losing/re-earning the role never
+    # creates a second entry or changes someone's original record. ──────────
     conn.execute("""
         CREATE TABLE IF NOT EXISTS hall_of_fame (
             entry_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -975,6 +976,16 @@ def init_db():
             achieved_at REAL NOT NULL
         )
     """)
+    # Migration: speedrun ranking needs join date + computed days-taken, and a
+    # flag for backfilled entries where the achieved_at date couldn't be
+    # confirmed via the audit log (so days_taken may not be fully accurate).
+    hof_columns = [row[1] for row in conn.execute("PRAGMA table_info(hall_of_fame)").fetchall()]
+    if "joined_at" not in hof_columns:
+        conn.execute("ALTER TABLE hall_of_fame ADD COLUMN joined_at REAL")
+    if "days_taken" not in hof_columns:
+        conn.execute("ALTER TABLE hall_of_fame ADD COLUMN days_taken REAL")
+    if "confirmed" not in hof_columns:
+        conn.execute("ALTER TABLE hall_of_fame ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 1")
     conn.commit()
     conn.close()
 
@@ -1106,32 +1117,55 @@ def db_get_referral(invited_discord_id: str):
 
 
 # ── Hall of Fame — DB helpers ──────────────────────────────────────────────────
-def db_record_hall_of_fame(discord_id: str) -> tuple[bool, int]:
-    """Records this Discord ID's first time earning the Deathknight Slayer role.
-    Returns (is_new, rank) — is_new is False if they'd already earned it before
-    (re-gaining the role never changes their original rank or fires a second
-    shoutout), rank is their 1-based position in the Hall of Fame either way."""
+def db_record_hall_of_fame(discord_id: str, joined_at: float, achieved_at: float, confirmed: bool = True) -> tuple[bool, int]:
+    """Records (or completes) this Discord ID's Hall of Fame entry, ranked by
+    speedrun time: days_taken = achieved_at (when they got the role) minus
+    joined_at (when they joined the server) — fewer days is a better rank.
+
+    Inserts a brand-new entry if this is their first time earning the role.
+    If they already have an entry, this only ever fills in missing data on a
+    legacy row (one recorded before this speedrun system existed) — it never
+    overwrites an already-complete entry, so a later re-grant of the role can
+    never change someone's original record.
+
+    `confirmed` should be False when achieved_at was backfilled without a
+    matching audit log entry (i.e. it's a "best guess", not the real date).
+    Returns (is_new, rank) — rank is 1-based, fewer days_taken = better."""
+    days_taken = max(0.0, (achieved_at - joined_at) / 86400)
     conn = sqlite3.connect(DB_PATH)
+
     cur = conn.execute(
-        "INSERT OR IGNORE INTO hall_of_fame (discord_id, achieved_at) VALUES (?, ?)",
-        (discord_id, time.time()),
+        "INSERT OR IGNORE INTO hall_of_fame (discord_id, joined_at, achieved_at, days_taken, confirmed) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (discord_id, joined_at, achieved_at, days_taken, 1 if confirmed else 0),
     )
-    conn.commit()
     is_new = cur.rowcount > 0
+
+    if not is_new:
+        # Only patches up a legacy row that's missing this data — a complete
+        # entry is never touched again.
+        conn.execute(
+            "UPDATE hall_of_fame SET joined_at = ?, achieved_at = ?, days_taken = ?, confirmed = ? "
+            "WHERE discord_id = ? AND (joined_at IS NULL OR achieved_at IS NULL OR days_taken IS NULL)",
+            (joined_at, achieved_at, days_taken, 1 if confirmed else 0, discord_id),
+        )
+
+    conn.commit()
     row = conn.execute(
-        "SELECT COUNT(*) FROM hall_of_fame WHERE entry_id <= "
-        "(SELECT entry_id FROM hall_of_fame WHERE discord_id = ?)",
+        "SELECT COUNT(*) + 1 FROM hall_of_fame WHERE days_taken < "
+        "(SELECT days_taken FROM hall_of_fame WHERE discord_id = ?)",
         (discord_id,),
     ).fetchone()
     conn.close()
-    rank = row[0] if row else 0
-    return is_new, rank
+    return is_new, (row[0] if row else 0)
 
 
-def db_get_hall_of_fame() -> list[tuple[str, float]]:
+def db_get_hall_of_fame() -> list[tuple[str, float, int]]:
+    """Returns (discord_id, days_taken, confirmed) ordered fastest-first."""
     conn = sqlite3.connect(DB_PATH)
     rows = conn.execute(
-        "SELECT discord_id, achieved_at FROM hall_of_fame ORDER BY entry_id ASC"
+        "SELECT discord_id, days_taken, confirmed FROM hall_of_fame "
+        "WHERE days_taken IS NOT NULL ORDER BY days_taken ASC"
     ).fetchall()
     conn.close()
     return rows
@@ -2129,6 +2163,16 @@ async def post_server_rules_command(interaction: discord.Interaction, channel: d
 
 
 # ── /post-hall-of-fame ─────────────────────────────────────────────────────────
+HALL_OF_FAME_INTRO = (
+    "Only the strongest survive Primal Hell.\n\n"
+    "Every Survivor who defeats the Death Knight earns their place among legends "
+    "— forever carved into this list, ranked by how fast they did it.\n\n"
+    "**How to claim your spot:** Open a support ticket, show your proof of victory, "
+    "and claim your exclusive role.\n\n"
+    "Do you have what it takes to face the Death Knight and walk away victorious?"
+)
+
+
 @tree.command(name="post-hall-of-fame", description="[Admin only] Post the Deathknight Slayer Hall of Fame ranking")
 async def post_hall_of_fame_command(interaction: discord.Interaction):
     user_role_names = {role.name for role in interaction.user.roles}
@@ -2142,25 +2186,27 @@ async def post_hall_of_fame_command(interaction: discord.Interaction):
         await interaction.response.send_message(f"❌ Could not find the **{HALL_OF_FAME_CHANNEL}** channel.", ephemeral=True)
         return
 
-    entries = db_get_hall_of_fame()
-    if not entries:
-        await interaction.response.send_message(
-            f"ℹ️ No one has earned the **{DEATHKNIGHT_SLAYER_ROLE}** role yet.", ephemeral=True
-        )
-        return
-
-    medals = {1: "🥇", 2: "🥈", 3: "🥉"}
-    lines = []
-    for i, (discord_id, achieved_at) in enumerate(entries[:50], 1):  # embed description length safety
-        rank_icon = medals.get(i, f"**{i}.**")
-        lines.append(f"{rank_icon} <@{discord_id}> — <t:{int(achieved_at)}:d>")
+    entries = db_get_hall_of_fame()  # already ordered fastest-first
 
     embed = discord.Embed(
-        title="👑 Deathknight Slayer — Hall of Fame",
-        description="\n".join(lines),
+        title="👑 HALL OF FAME",
+        description=HALL_OF_FAME_INTRO,
         color=discord.Color.gold(),
     )
-    embed.set_footer(text="Ranked by who slayed the Deathknight first • Primal Hell")
+
+    if not entries:
+        embed.add_field(name="🏆 Rankings", value=f"No one has earned the **{DEATHKNIGHT_SLAYER_ROLE}** role yet. Will it be you?", inline=False)
+    else:
+        medals = {1: "🥇", 2: "🥈", 3: "🥉"}
+        lines = []
+        for i, (discord_id, days_taken, confirmed) in enumerate(entries[:50], 1):  # embed length safety
+            rank_icon = medals.get(i, f"**{i}.**")
+            days_text = f"{days_taken:.0f} day{'s' if round(days_taken) != 1 else ''}"
+            note = " *(unconfirmed)*" if not confirmed else ""
+            lines.append(f"{rank_icon} <@{discord_id}> — **{days_text}** to slay the Death Knight{note}")
+        embed.add_field(name="🏆 Fastest Death Knight Slayers", value="\n".join(lines), inline=False)
+
+    embed.set_footer(text=f"Ranked by speed — days between joining Primal Hell and earning {DEATHKNIGHT_SLAYER_ROLE}")
     await channel.send(embed=embed)
 
     await interaction.response.send_message(f"✅ Hall of Fame posted in {channel.mention}.", ephemeral=True)
@@ -2666,18 +2712,24 @@ async def on_member_update(before: discord.Member, after: discord.Member):
 
     # Deathknight Slayer Hall of Fame tracking — only fires the moment the
     # role is newly added, and only ever counts someone's FIRST time earning it.
+    # Ranked by speedrun time: days between joining the server and earning
+    # the role, fewer days = better rank.
     had_slayer = any(r.name == DEATHKNIGHT_SLAYER_ROLE for r in before.roles)
     has_slayer = any(r.name == DEATHKNIGHT_SLAYER_ROLE for r in after.roles)
     if has_slayer and not had_slayer:
-        is_new, rank = db_record_hall_of_fame(str(after.id))
+        joined_at = after.joined_at.timestamp() if after.joined_at else time.time()
+        achieved_at = time.time()
+        is_new, rank = db_record_hall_of_fame(str(after.id), joined_at, achieved_at, confirmed=True)
         if is_new:
             hof_channel = discord.utils.get(after.guild.channels, name=HALL_OF_FAME_CHANNEL)
             if hof_channel:
+                days_taken = max(0.0, (achieved_at - joined_at) / 86400)
                 medals = {1: "🥇", 2: "🥈", 3: "🥉"}
                 rank_text = medals.get(rank, f"#{rank}")
                 await hof_channel.send(
-                    f"👑 **{after.display_name}** has slain the Deathknight and earned the "
-                    f"**{DEATHKNIGHT_SLAYER_ROLE}** role! They now hold Hall of Fame spot **{rank_text}**! 🏆"
+                    f"👑 **{after.display_name}** has slain the Deathknight — **{days_taken:.0f} days** "
+                    f"after joining Primal Hell — and earned the **{DEATHKNIGHT_SLAYER_ROLE}** role! "
+                    f"They now hold Hall of Fame spot **{rank_text}**! 🏆"
                 )
 
 
@@ -2696,26 +2748,22 @@ async def sync_vip_roles_on_startup():
 
 
 async def sync_hall_of_fame_on_startup():
-    """One-time catch-up on bot startup: backfills anyone who already holds the
-    Deathknight Slayer role but isn't in the Hall of Fame yet — e.g. they earned
-    it before this feature existed, or while the bot was offline (on_member_update
-    only catches *live* role changes going forward).
+    """One-time catch-up on bot startup: makes sure everyone currently holding
+    the Deathknight Slayer role has a complete Hall of Fame entry — both brand
+    new members never recorded before, and legacy entries recorded before the
+    speedrun ranking system existed (missing join/achieved dates). Never
+    touches an already-complete entry; on_member_update handles everything
+    live and accurately from here on.
 
-    Best-effort recovers the real order they earned it in from the audit log —
-    Discord only retains ~45 days of audit log entries and requires the bot to
-    have "View Audit Log" permission, so this may not be available. Anyone that
-    can't be matched to an audit log entry is appended after the ones that can,
-    in whatever order the API happened to return them — NOT guaranteed to be
-    the true chronological order. Does not touch anyone already recorded."""
+    Ranked by days_taken = role-grant date minus server-join date. The grant
+    date is recovered best-effort from the audit log (Discord retains ~45
+    days of entries and requires "View Audit Log" permission) — if it can't
+    be found, "now" is used as a placeholder and the entry is marked
+    unconfirmed, since days_taken won't be accurate for it."""
     await client.wait_until_ready()
     for guild in client.guilds:
         role = discord.utils.get(guild.roles, name=DEATHKNIGHT_SLAYER_ROLE)
         if not role or not role.members:
-            continue
-
-        existing_ids = {discord_id for discord_id, _ in db_get_hall_of_fame()}
-        missing_members = [m for m in role.members if str(m.id) not in existing_ids]
-        if not missing_members:
             continue
 
         earned_at = {}
@@ -2726,20 +2774,20 @@ async def sync_hall_of_fame_on_startup():
                     if entry.target.id not in earned_at:
                         earned_at[entry.target.id] = entry.created_at.timestamp()
         except discord.Forbidden:
-            print("⚠️ Missing 'View Audit Log' permission — Hall of Fame backfill order is not guaranteed accurate.")
+            print("⚠️ Missing 'View Audit Log' permission — backfilled days-taken may not be fully accurate.")
         except discord.HTTPException as e:
             print(f"⚠️ Could not read audit log for Hall of Fame backfill: {e}")
 
-        # Members with a recovered audit-log timestamp are ordered correctly;
-        # anyone without one (grant older than ~45 days, or no permission) is
-        # placed after them, in unspecified order.
-        missing_members.sort(key=lambda m: earned_at.get(m.id, float("inf")))
+        for member in role.members:
+            joined_at = member.joined_at.timestamp() if member.joined_at else time.time()
+            confirmed = member.id in earned_at
+            achieved_at = earned_at.get(member.id, time.time())
 
-        for member in missing_members:
-            is_new, rank = db_record_hall_of_fame(str(member.id))
+            is_new, rank = db_record_hall_of_fame(str(member.id), joined_at, achieved_at, confirmed=confirmed)
             if is_new:
-                confirmed = "confirmed via audit log" if member.id in earned_at else "order NOT confirmed"
-                print(f"👑 Hall of Fame backfill: {member.display_name} — rank #{rank} ({confirmed})")
+                tag = "confirmed via audit log" if confirmed else "NOT confirmed — days-taken may be wrong"
+                days_taken = max(0.0, (achieved_at - joined_at) / 86400)
+                print(f"👑 Hall of Fame backfill: {member.display_name} — {days_taken:.0f} days, rank #{rank} ({tag})")
 
 
 # ── Discord-activity tier reward: direct Coin credit (no promo code needed) ────
