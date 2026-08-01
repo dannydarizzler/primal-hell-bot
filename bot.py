@@ -1326,19 +1326,21 @@ async def finish_giveaway(message_id: int):
 
 
 # ── /giveaway-start ─────────────────────────────────────────────────────────────
-# Duration is a fixed dropdown (24h / 48h / 72h / Custom). If "Custom" is picked,
-# the custom_duration field is required (e.g. "5d", "6h30m", "90m").
+# Duration is a fixed dropdown (24h / 48h / 72h / 5 Days / 7 Days / Custom).
+# If "Custom" is picked, custom_hours (a plain number of hours) is required.
 @tree.command(name="giveaway-start", description="[Admin only] Start a new giveaway in #giveaways")
 @app_commands.describe(
     prize="What are you giving away?",
     duration="How long should the giveaway run?",
     winners="How many winners?",
-    custom_duration="Only used when Duration = Custom (e.g. 5d, 6h30m, 90m)",
+    custom_hours="Only used when Duration = Custom — duration in hours (e.g. 10)",
 )
 @app_commands.choices(duration=[
     app_commands.Choice(name="24 Hours", value="24h"),
     app_commands.Choice(name="48 Hours", value="48h"),
     app_commands.Choice(name="72 Hours", value="72h"),
+    app_commands.Choice(name="5 Days",   value="120h"),
+    app_commands.Choice(name="7 Days",   value="168h"),
     app_commands.Choice(name="Custom",   value="custom"),
 ])
 async def giveaway_start_command(
@@ -1346,7 +1348,7 @@ async def giveaway_start_command(
     prize: str,
     duration: app_commands.Choice[str],
     winners: int,
-    custom_duration: str = None,
+    custom_hours: app_commands.Range[int, 1, 720] = None,
 ):
     user_role_names = {role.name for role in interaction.user.roles}
     if not user_role_names.intersection(GIVEAWAY_ROLES):
@@ -1363,20 +1365,14 @@ async def giveaway_start_command(
         return
 
     if duration.value == "custom":
-        if not custom_duration:
+        if not custom_hours:
             await interaction.response.send_message(
-                "❌ You selected **Custom** — please also fill in `custom_duration` "
-                "(e.g. `5d`, `6h30m`, `90m`).",
+                "❌ You selected **Custom** — please also fill in `custom_hours` "
+                "(e.g. `10` for a 10-hour giveaway).",
                 ephemeral=True,
             )
             return
-        seconds = parse_duration(custom_duration)
-        if seconds is None:
-            await interaction.response.send_message(
-                "❌ Invalid custom duration format. Use combinations like `1d`, `2h30m`, `45m`.",
-                ephemeral=True,
-            )
-            return
+        seconds = custom_hours * 3600
     else:
         seconds = parse_duration(duration.value)
 
@@ -1390,12 +1386,14 @@ async def giveaway_start_command(
     prize="What are you giving away?",
     duration="How long should the giveaway run?",
     winners="How many winners?",
-    custom_duration="Only used when Duration = Custom (e.g. 5d, 6h30m, 90m)",
+    custom_hours="Only used when Duration = Custom — duration in hours (e.g. 10)",
 )
 @app_commands.choices(duration=[
     app_commands.Choice(name="24 Hours", value="24h"),
     app_commands.Choice(name="48 Hours", value="48h"),
     app_commands.Choice(name="72 Hours", value="72h"),
+    app_commands.Choice(name="5 Days",   value="120h"),
+    app_commands.Choice(name="7 Days",   value="168h"),
     app_commands.Choice(name="Custom",   value="custom"),
 ])
 async def vip_giveaway_start_command(
@@ -1403,7 +1401,7 @@ async def vip_giveaway_start_command(
     prize: str,
     duration: app_commands.Choice[str],
     winners: int,
-    custom_duration: str = None,
+    custom_hours: app_commands.Range[int, 1, 720] = None,
 ):
     user_role_names = {role.name for role in interaction.user.roles}
     if not user_role_names.intersection(GIVEAWAY_ROLES):
@@ -1420,20 +1418,14 @@ async def vip_giveaway_start_command(
         return
 
     if duration.value == "custom":
-        if not custom_duration:
+        if not custom_hours:
             await interaction.response.send_message(
-                "❌ You selected **Custom** — please also fill in `custom_duration` "
-                "(e.g. `5d`, `6h30m`, `90m`).",
+                "❌ You selected **Custom** — please also fill in `custom_hours` "
+                "(e.g. `10` for a 10-hour giveaway).",
                 ephemeral=True,
             )
             return
-        seconds = parse_duration(custom_duration)
-        if seconds is None:
-            await interaction.response.send_message(
-                "❌ Invalid custom duration format. Use combinations like `1d`, `2h30m`, `45m`.",
-                ephemeral=True,
-            )
-            return
+        seconds = custom_hours * 3600
     else:
         seconds = parse_duration(duration.value)
 
