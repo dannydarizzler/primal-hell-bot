@@ -46,7 +46,7 @@ RANK_SYSTEM_CHANNEL      = "🔰｜rank-system"
 # ── Referral bonus ───────────────────────────────────────────────────────────
 REFERRAL_BONUS_COINS   = 300   # Coins credited to the inviter per new, unique referral
 REFERRAL_MIN_ACCOUNT_AGE_DAYS = 3   # invited account must be at least this old — blocks disposable alt accounts
-REFERRAL_LOG_CHANNEL   = "🔧｜server-changes"  # optional: quiet log of every referral (reuses existing channel)
+REFERRAL_LOG_CHANNEL   = "📣｜shoutouts"  # public shoutout of every referral, alongside VIP/rank-up shoutouts
 
 # ── Message-based tier progression ─────────────────────────────────────────
 TIER_ROLES = [
