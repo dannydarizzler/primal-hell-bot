@@ -41,6 +41,7 @@ HERMES_BOT_ID       = 1525423361600126977
 # ── Hall of Fame (Deathknight Slayer) ────────────────────────────────────────
 DEATHKNIGHT_SLAYER_ROLE = "Deathknight Slayer"  # exact role name — adjust if it differs in Discord
 HALL_OF_FAME_CHANNEL     = "👑｜hall-of-fame"
+RANK_SYSTEM_CHANNEL      = "🔰｜rank-system"
 
 # ── Referral bonus ───────────────────────────────────────────────────────────
 REFERRAL_BONUS_COINS   = 300   # Coins credited to the inviter per new, unique referral
@@ -2205,6 +2206,66 @@ async def post_hall_of_fame_command(interaction: discord.Interaction):
     await interaction.response.send_message(f"✅ Hall of Fame posted in {channel.mention}.", ephemeral=True)
 
 
+# ── /post-rank-system ───────────────────────────────────────────────────────────
+# Rank names + Coin rewards are shown; the message-count thresholds behind each
+# rank are intentionally NOT revealed here (same reasoning as the Shop's Profile
+# tab, which also only shows rank name + % progress, never raw thresholds).
+RANK_SYSTEM_TOTAL_COINS = sum(coins for _, _, coins in TIER_ROLES)
+
+RANK_SYSTEM_INTRO = (
+    "The more active you are in the Primal Hell Discord, the higher you climb.\n\n"
+    "Every time you reach a new rank, you're credited with a **one-time Coin reward** "
+    "automatically — straight to your [Shop]({shop_url}) balance, no ticket needed.\n\n"
+    "Check your own progress anytime on the Shop's **Profile** tab."
+)
+
+RANK_EMOJIS = {
+    "Toxic": "🧪", "Alpha": "⚔️", "Elemental": "❄️", "Shadow": "🌑", "Mythic": "👑",
+    "Legendary": "🏆", "Demonic": "😈", "Spirit": "👻", "Origin": "✨", "Nightmare": "💀",
+}
+
+
+@tree.command(name="post-rank-system", description="[Admin only] Post the Rank System info embed in #rank-system")
+async def post_rank_system_command(interaction: discord.Interaction):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(SHOP_EMBED_ROLES):
+        roles_text = " / ".join(SHOP_EMBED_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can post the Rank System embed.", ephemeral=True)
+        return
+
+    channel = discord.utils.get(interaction.guild.channels, name=RANK_SYSTEM_CHANNEL)
+    if channel is None:
+        await interaction.response.send_message(f"❌ Could not find the **{RANK_SYSTEM_CHANNEL}** channel.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🔰 Rank System — Primal Hell",
+        description=RANK_SYSTEM_INTRO.format(shop_url=SHOP_PUBLIC_URL),
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+
+    lines = []
+    for tier_name, _threshold, coins in TIER_ROLES:
+        rank_label = tier_name.replace("Rank - ", "")
+        emoji = RANK_EMOJIS.get(rank_label, "🔸")
+        lines.append(f"{emoji} **{rank_label}** — {coins:,} Coins")
+    embed.add_field(name="📈 Ranks & Rewards", value="\n".join(lines), inline=False)
+
+    embed.add_field(
+        name="💰 Total Free-to-Play Earnings",
+        value=(
+            f"Reach every rank all the way to **Nightmare** and you'll have earned a combined "
+            f"**{RANK_SYSTEM_TOTAL_COINS:,} Primal Coins** — completely free, just by being active."
+        ),
+        inline=False,
+    )
+
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await channel.send(embed=embed)
+
+    await interaction.response.send_message(f"✅ Rank System embed posted in {channel.mention}.", ephemeral=True)
+
+
 # ── /admin-commands ──────────────────────────────────────────────────────────────
 ADMIN_COMMANDS_ROLES = ["Admin", "Owner"]  # only these roles can view this overview
 
@@ -2229,7 +2290,8 @@ async def admin_commands_command(interaction: discord.Interaction):
             "`/post-shop-embed` — Post the Shop announcement embed\n"
             "`/post-vip-embed` — Post the VIP Status info embed\n"
             "`/post-server-rules` — Post the Server Rules embed\n"
-            "`/post-hall-of-fame` — Post the Deathknight Slayer Hall of Fame ranking"
+            "`/post-hall-of-fame` — Post the Deathknight Slayer Hall of Fame ranking\n"
+            "`/post-rank-system` — Post the Rank System info embed in #rank-system"
         ),
         inline=False,
     )
