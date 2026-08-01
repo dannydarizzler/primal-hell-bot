@@ -31,6 +31,7 @@ GIVEAWAY_CHANNEL    = "🎁｜giveaways"        # giveaways always post here
 VIP_GIVEAWAY_CHANNEL = "💎｜vip-giveaways"    # VIP-only giveaways always post here
 POLL_ROLES          = ["Admin", "Owner"]   # only these roles can create polls
 VIP_ROLE_NAME       = "VIP"                 # role granted by boosting — auto-syncs to the shop
+BEACH_BOB_ROLE      = "Beach Bob"           # starter role granted on join — removed once Toxic rank is reached
 SHOUTOUTS_CHANNEL   = "📣｜shoutouts"        # rank-up and VIP-boost shoutouts post here
 POLLS_CHANNEL       = "📊｜polls"            # polls always post here
 TICKET_CHANNEL      = "🎟️｜ticket-system"    # forum: new post = new ticket
@@ -3062,6 +3063,14 @@ async def on_message(message: discord.Message):
                         for r in lower_tiers:
                             try:
                                 await message.author.remove_roles(r)
+                            except Exception:
+                                pass
+                        # Beach Bob is a starter role — dropped the moment a
+                        # player reaches their first real rank (Toxic).
+                        beach_bob_role = discord.utils.get(message.guild.roles, name=BEACH_BOB_ROLE)
+                        if beach_bob_role and beach_bob_role in message.author.roles:
+                            try:
+                                await message.author.remove_roles(beach_bob_role)
                             except Exception:
                                 pass
                         # Add new tier role
