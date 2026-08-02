@@ -2464,12 +2464,21 @@ def _current_and_next_tier(message_count: int):
     return current, None, None  # maxed out (Nightmare)
 
 
+RANK_CARD_BADGE_FILES = {
+    "Toxic": "toxic.jpg", "Alpha": "alpha.jpg", "Elemental": "elemental.jpg",
+    "Shadow": "shadow.jpg", "Mythic": "mythic.jpg", "Legendary": "legendary.jpg",
+    "Demonic": "demonic.jpg", "Spirit": "spirit.jpg", "Origin": "origin.jpg",
+    "Nightmare": "nightmare.jpg",
+}
+
+
 async def generate_rank_card(member: discord.Member) -> discord.File:
     message_count = _get_message_count(str(member.id))
     placement, total_ranked = _get_rank_placement(str(member.id), message_count)
     current_tier, next_threshold, next_tier = _current_and_next_tier(message_count)
 
-    W, H = 934, 282
+    badge_area_w = 210
+    W, H = 934 + badge_area_w, 282
     card = Image.new("RGB", (W, H), (18, 12, 11))
     draw = ImageDraw.Draw(card)
 
@@ -2507,6 +2516,28 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
         # rather than failing the whole card.
         pass
 
+    # Rank badge artwork (the same shield images used on the Shop's Profile tab),
+    # fetched live from the Shop so the bot never needs its own copy of the art.
+    badge_filename = RANK_CARD_BADGE_FILES.get(current_tier)
+    if badge_filename and SHOP_PUBLIC_URL:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{SHOP_PUBLIC_URL}/images/badges/{badge_filename}") as resp:
+                    badge_bytes = await resp.read()
+            badge_img = Image.open(io.BytesIO(badge_bytes)).convert("RGBA")
+            # Fit within a bounding box, preserving aspect ratio (badge art isn't
+            # all the same shape — some are square, some landscape).
+            max_w, max_h = 170, 200
+            bw, bh = badge_img.size
+            scale = min(max_w / bw, max_h / bh)
+            badge_img = badge_img.resize((int(bw * scale), int(bh * scale)))
+            badge_x = W - badge_area_w + (badge_area_w - badge_img.width) // 2
+            badge_y = (H - badge_img.height) // 2
+            card.paste(badge_img, (badge_x, badge_y), badge_img)
+        except Exception:
+            # Best-effort — a missing/unreachable badge image shouldn't break the card.
+            pass
+
     text_x = avatar_x + avatar_size + 40
     font_name = _load_font(40, bold=True)
     font_tier = _load_font(26, bold=True)
@@ -2524,8 +2555,8 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
     placement_text = f"Server Rank #{placement} of {total_ranked}" if total_ranked > 0 else "Not ranked yet"
     draw.text((text_x, 132), placement_text, font=font_label, fill=(200, 190, 180))
 
-    # Progress bar toward next rank
-    bar_x, bar_y, bar_w, bar_h = text_x, 178, W - text_x - 50, 26
+    # Progress bar toward next rank (stops before the badge area on the right)
+    bar_x, bar_y, bar_w, bar_h = text_x, 178, (W - badge_area_w) - text_x - 30, 26
     draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=13, fill=(45, 32, 28))
     if next_threshold:
         prev_threshold = 0
