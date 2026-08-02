@@ -2840,11 +2840,15 @@ async def sync_hall_of_fame_on_startup():
             achieved_at = earned_at.get(member.id, time.time())
 
             is_new, rank = db_record_hall_of_fame(str(member.id), joined_at, achieved_at, confirmed=confirmed)
+            days_taken = max(0.0, (achieved_at - joined_at) / 86400)
+            # Push EVERY current role-holder to the shop on every startup, not just
+            # newly-recorded ones — the shop upsert is idempotent, and this is the
+            # only way entries recorded locally before shop-sync existed ever reach
+            # the shop's Hall of Fame preview (they're never "new" again otherwise).
+            await push_hall_of_fame_to_shop(str(member.id), days_taken, confirmed)
             if is_new:
                 tag = "confirmed via audit log" if confirmed else "NOT confirmed — days-taken may be wrong"
-                days_taken = max(0.0, (achieved_at - joined_at) / 86400)
                 print(f"👑 Hall of Fame backfill: {member.display_name} — {days_taken:.0f} days, rank #{rank} ({tag})")
-                await push_hall_of_fame_to_shop(str(member.id), days_taken, confirmed)
 
 
 # ── Discord-activity tier reward: direct Coin credit (no promo code needed) ────
