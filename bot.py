@@ -75,14 +75,17 @@ DROPS = {
     "white": {
         "label": "⚪ White — Starter Kit",
         "normal": (
-            "• Alpha Flak Armor (5 pieces)\n"
+            "10 ItemSets:\n"
+            "• Alpha Flak Armor (5 pieces — low quality)\n"
             "• 10x Bola\n"
             "• Toxic Pick\n"
             "• Toxic Hatchet\n"
-            "• 10x Med Brew"
+            "• 10x Med Brew\n"
+            "• Chibi Pool *(draws 1 of 15)*: Rex, Carno, Spino, Stego, Trike, Sarco, "
+            "Raptor, Allo, Ankylo, Baryonyx, Direbear, Para, Ptera, Kentro, Mammoth"
         ),
         "double": (
-            "• Everything from Normal\n"
+            "13 ItemSets — everything from Normal, plus:\n"
             "• Crossbow\n"
             "• 20x Potent Tranq Arrows\n"
             "• 1–3x Small XP Potion"
@@ -90,113 +93,115 @@ DROPS = {
         "quality": "Primitive",
     },
     "green": {
-        "label": "🟢 Green — Resources",
+        "label": "🟢 Green — Resources & Taming",
         "normal": (
-            "• 50–125x Polymer\n"
-            "• 50–125x Cementing Paste\n"
-            "• 50–125x Silica Pearls\n"
-            "• 50–125x Oil"
+            "5 ItemSets:\n"
+            "• 25x Mythic Tranq Dart\n"
+            "• Longneck (One Shot Rifle)\n"
+            "• 10–15x Toxic Kibble\n"
+            "• 10x Toxic Health Potion\n"
+            "• 10x Medium XP Potion"
         ),
         "double": (
-            "• 75–200x Polymer\n"
-            "• 75–200x Cementing Paste\n"
-            "• 75–200x Silica Pearls\n"
-            "• 75–200x Oil"
+            "6 ItemSets:\n"
+            "• 50x Mythic Tranq Dart\n"
+            "• Longneck *(20% Blueprint chance)*\n"
+            "• 10–15x Toxic Kibble\n"
+            "• 10x Toxic Health Potion\n"
+            "• 15x Medium XP Potion\n"
+            "• Crossbow *(20% Blueprint chance)*"
         ),
         "quality": "—",
     },
     "blue": {
-        "label": "🔵 Blue — Alpha Tier",
+        "label": "🔵 Blue — Alpha/Volcanic/Mythic Gear",
         "normal": (
-            "**Guaranteed:**\n"
-            "• 15–35x Potent/Alpha Tranq Arrows\n"
-            "• 2–5x Alpha Health Potion\n"
-            "• 2–5x Medium XP Potion\n\n"
-            "**Gear Pool (3–8 items, no Blueprints):**\n"
-            "• Crossbow · Alpha Flak Set (5 pieces)\n"
-            "• Alpha Pick · Hatchet · Sickle · Pike · Chainsaw"
+            "**Pool: draws 3–7 of 22 items (no Blueprints):**\n"
+            "• Alpha Flak Set (5 pieces) + Alpha Pick/Hatchet/Sickle/Pike\n"
+            "• Volcanic Flak Set (5 pieces) + Volcanic Pick/Hatchet/Sickle/Pike\n"
+            "• Mythic Pick/Hatchet/Sickle/Pike"
         ),
         "double": (
-            "**Guaranteed:**\n"
-            "• 15–35x Potent/Alpha Tranq Arrows\n"
-            "• 2–5x Alpha Health Potion\n"
-            "• 2–5x Medium XP Potion\n\n"
-            "**Gear Pool (3–11 items, 20% Blueprint chance each):**\n"
-            "• Crossbow · Alpha Flak Set (5 pieces)\n"
-            "• Alpha Pick · Hatchet · Sickle · Pike · Chainsaw"
+            "**Pool: draws 5–10 of the same 22 items, each with a 20% Blueprint chance:**\n"
+            "• Alpha Flak Set (5 pieces) + Alpha Pick/Hatchet/Sickle/Pike\n"
+            "• Volcanic Flak Set (5 pieces) + Volcanic Pick/Hatchet/Sickle/Pike\n"
+            "• Mythic Pick/Hatchet/Sickle/Pike"
         ),
         "quality": "—",
     },
     "purple": {
-        "label": "🟣 Purple — Structures",
+        "label": "🟣 Purple — Resources",
         "normal": (
-            "• 10x Metal Foundation\n"
-            "• 15x Metal Wall\n"
-            "• 10x Metal Ceiling\n"
-            "• Dino Gateway + Gate"
+            "4 ItemSets:\n"
+            "• 70–145x Polymer\n"
+            "• 70–145x Chitin Paste\n"
+            "• 70–145x Silicon\n"
+            "• 70–145x Oil"
         ),
         "double": (
-            "• 20x Metal Foundation\n"
-            "• 30x Metal Wall\n"
-            "• 20x Metal Ceiling\n"
-            "• Dino Gateway + Gate"
+            "4 ItemSets:\n"
+            "• 115–240x Polymer\n"
+            "• 115–240x Chitin Paste\n"
+            "• 115–240x Silicon\n"
+            "• 115–240x Oil"
         ),
         "quality": "—",
     },
     "yellow": {
-        "label": "🟡 Yellow — Volcanic Tier",
-        "normal": (
-            "**Guaranteed:**\n"
-            "• 10–20x Tranq Dart (random: Elemental/Alpha/Potent)\n"
-            "• 8–16x Elemental ADV Sniper Bullets\n"
-            "• 2–5x Large XP Potion\n"
-            "• 1–5x Mythic Health Potion\n\n"
-            "**Gear Pool (3–8 items, no Blueprints):**\n"
-            "• Longneck · Volcanic Flak Set (5 pieces)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike · Chainsaw"
-        ),
-        "double": (
-            "**Guaranteed:**\n"
-            "• 15–35x Tranq Dart (random: Elemental/Alpha/Potent)\n"
-            "• 8–24x Elemental ADV Sniper Bullets\n"
-            "• 2–5x Large XP Potion\n"
-            "• 1–5x Mythic Health Potion\n\n"
-            "**Gear Pool (3–8 items, 20% Blueprint chance each):**\n"
-            "• Longneck · Volcanic Flak Set (5 pieces)\n"
-            "• Volcanic Pick · Hatchet · Sickle · Pike · Chainsaw\n"
-            "• Fab Sniper (Mastercraft) *(Double crates only)*"
-        ),
+        "label": "🟡 Yellow — Saddles",
+        "normal": "**Pool: draws 10 of 142 possible saddles**, each with a 10% Blueprint chance.",
+        "double": "**Pool: draws 15 of the same 142 possible saddles**, each with a 10% Blueprint chance.",
         "quality": "—",
     },
     "red": {
         "label": "🔴 Red — Endgame Exclusives",
         "normal": (
             "**Guaranteed:**\n"
-            "• 8–25x Mythic/Primal ADV Sniper Bullets (random)\n"
+            "• 8–25x Mythic or Primal ADV Sniper Bullets (random)\n"
             "• 1–2x Max XP Potion\n"
             "• 1–2x Nightmare Health Potion\n"
             "• 8–25x Primal Compound Bow Arrows\n\n"
-            "**Gear Pool (3–8 items, no Blueprints):**\n"
-            "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
-            "• Legend Riot Set (5 pieces)\n"
-            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw"
+            "**Gear Pool (3–8 of 17 items, no Blueprints):**\n"
+            "• Fab Sniper (Machined Sniper)\n"
+            "• Mythic Flak Set (5 pieces) · Legend Riot Set (5 pieces)\n"
+            "• Mythic Pick · Hatchet · Sickle · Pike\n"
+            "• Chainsaw · Compound Bow"
         ),
         "double": (
             "**Guaranteed:**\n"
-            "• 8–25x Mythic/Primal ADV Sniper Bullets (random)\n"
+            "• 8–25x Mythic or Primal ADV Sniper Bullets (random)\n"
             "• 1–2x Max XP Potion\n"
             "• 1–2x Nightmare Health Potion\n"
-            "• 8–25x Primal Compound Bow Arrows\n"
-            "• Additional guaranteed Primal ADV Sniper Bullets\n\n"
-            "**Gear Pool (3–8 items, 20% Blueprint chance each — no exception for Chainsaw/Compound Bow):**\n"
-            "• Fab Sniper · Mythic Flak Set (5 pieces)\n"
-            "• Legend Riot Set (5 pieces)\n"
-            "• Mythic Pick · Hatchet · Sickle · Pike · Chainsaw\n"
-            "• Compound Bow added to pool (20% Blueprint chance like all other items)"
+            "• 8–25x additional Primal ADV Sniper Bullets *(guaranteed on top of the random roll above)*\n"
+            "• 8–25x Primal Compound Bow Arrows\n\n"
+            "**Gear Pool (3–8 of 17 items, 20% Blueprint chance each):**\n"
+            "• Fab Sniper (Machined Sniper)\n"
+            "• Mythic Flak Set (5 pieces) · Legend Riot Set (5 pieces)\n"
+            "• Mythic Pick · Hatchet · Sickle · Pike\n"
+            "• Chainsaw · Compound Bow"
         ),
         "quality": "—",
     },
+    "ocean": {
+        "label": "🌊 Deep-Sea — Ragnarok Only",
+        "normal": "**Pool: draws 4 of 37 possible items — every item has a guaranteed 100% Blueprint chance.**",
+        "double": "**High-tier Deep-Sea crate** — same pool of 37 items, still a guaranteed 100% Blueprint chance on every draw.",
+        "quality": "—",
+        "map_note": "🗺️ Only found underwater on **Ragnarok**.",
+    },
 }
+
+# Scorched Earth (Ragnarok desert biome) crates mostly reuse the same loot as
+# their normal counterparts above — these are just the differences worth
+# calling out. Purple/Level35 has no desert equivalent at all.
+DESERT_NOTE = (
+    "🏜️ **Scorched Earth (Ragnarok desert) crates** — found only in the desert biome:\n"
+    "• **White** in the desert is still the *old* loadout (Toxic Hide armor, no Chibi Pool) "
+    "— it hasn't been updated to match the current White crate above.\n"
+    "• **Green, Blue, Yellow, Red** in the desert use the exact same loot as their normal "
+    "counterparts above.\n"
+    "• **Purple** has no desert equivalent."
+)
 
 # ── Channel Lock (commands channel) ────────────────────────────────────────────
 async def check_channel(interaction: discord.Interaction) -> bool:
@@ -276,12 +281,13 @@ async def commands_command(interaction: discord.Interaction):
 @tree.command(name="drop", description="Shows the contents of a loot drop")
 @app_commands.describe(color="Which drop color?")
 @app_commands.choices(color=[
-    app_commands.Choice(name="⚪ White — Starter Kit",       value="white"),
-    app_commands.Choice(name="🟢 Green — Resources",         value="green"),
-    app_commands.Choice(name="🔵 Blue — Alpha Tier",         value="blue"),
-    app_commands.Choice(name="🟣 Purple — Structures",       value="purple"),
-    app_commands.Choice(name="🟡 Yellow — Volcanic Tier",    value="yellow"),
-    app_commands.Choice(name="🔴 Red — Endgame Exclusives",  value="red"),
+    app_commands.Choice(name="⚪ White — Starter Kit",              value="white"),
+    app_commands.Choice(name="🟢 Green — Resources & Taming",       value="green"),
+    app_commands.Choice(name="🔵 Blue — Alpha/Volcanic/Mythic Gear", value="blue"),
+    app_commands.Choice(name="🟣 Purple — Resources",               value="purple"),
+    app_commands.Choice(name="🟡 Yellow — Saddles",                 value="yellow"),
+    app_commands.Choice(name="🔴 Red — Endgame Exclusives",         value="red"),
+    app_commands.Choice(name="🌊 Deep-Sea — Ragnarok Only",         value="ocean"),
 ])
 async def drop_command(interaction: discord.Interaction, color: str):
     if not await check_channel(interaction):
@@ -291,6 +297,8 @@ async def drop_command(interaction: discord.Interaction, color: str):
     q = f"\n**Quality:** {data['quality']}" if data["quality"] != "—" else ""
 
     embed = discord.Embed(title=f"Drop — {data['label']}")
+    if data.get("map_note"):
+        embed.description = data["map_note"]
     embed.add_field(name="Normal", value=data["normal"] + q, inline=False)
     embed.add_field(name="\u200b", value="\u200b", inline=False)  # spacer
     embed.add_field(name="Double (with Ring)", value=data["double"] + q, inline=False)
@@ -308,13 +316,15 @@ async def drops_command(interaction: discord.Interaction):
         title="Drop — Overview",
         description=(
             "⚪ White → Starter Kit\n"
-            "🟢 Green → Resources\n"
-            "🔵 Blue → Alpha Tier\n"
-            "🟣 Purple → Structures\n"
-            "🟡 Yellow → Volcanic Tier\n"
-            "🔴 Red → Endgame Exclusives\n\n"
+            "🟢 Green → Resources & Taming\n"
+            "🔵 Blue → Alpha/Volcanic/Mythic Gear\n"
+            "🟣 Purple → Resources\n"
+            "🟡 Yellow → Saddles\n"
+            "🔴 Red → Endgame Exclusives\n"
+            "🌊 Deep-Sea → Ragnarok Only\n\n"
             "Use `/drop <color>` for full details.\n"
-            "**Double** = Crate with ring — always better!"
+            "**Double** = Crate with ring — always better!\n\n"
+            f"{DESERT_NOTE}"
         )
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
@@ -2778,11 +2788,11 @@ async def on_member_update(before: discord.Member, after: discord.Member):
         if is_new:
             days_taken = max(0.0, (achieved_at - joined_at) / 86400)
             asyncio.create_task(push_hall_of_fame_to_shop(str(after.id), days_taken, True))
-            hof_channel = discord.utils.get(after.guild.channels, name=HALL_OF_FAME_CHANNEL)
-            if hof_channel:
+            shoutout_ch = discord.utils.get(after.guild.channels, name=SHOUTOUTS_CHANNEL)
+            if shoutout_ch:
                 medals = {1: "🥇", 2: "🥈", 3: "🥉"}
-                rank_text = medals.get(rank, f"#{rank}")
-                await hof_channel.send(
+                rank_text = medals.get(rank) or f"#{rank}" if rank else "🏆"
+                await shoutout_ch.send(
                     f"👑 **{after.display_name}** has slain the Deathknight — **{days_taken:.0f} days** "
                     f"after joining Primal Hell — and earned the **{DEATHKNIGHT_SLAYER_ROLE}** role! "
                     f"They now hold Hall of Fame spot **{rank_text}**! 🏆"
