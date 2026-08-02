@@ -11,7 +11,12 @@ import sqlite3
 import json
 import aiohttp
 import io
-from PIL import Image, ImageDraw, ImageFont
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+    print("⚠️ Pillow is not installed — /rank card images are disabled. Add 'Pillow' to requirements.txt to enable them.")
 
 # ── Bot Setup ──────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
@@ -2415,7 +2420,7 @@ RANK_CARD_COLORS = {
 }
 
 
-def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+def _load_font(size: int, bold: bool = False):
     """Tries a few common system font paths (Railway's base image is Debian-based
     and typically ships DejaVu Sans), falling back to PIL's built-in bitmap font
     if none are found — the card still renders, just with a plainer font."""
@@ -2548,6 +2553,12 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
 @tree.command(name="rank", description="Shows your Primal Hell rank card")
 async def rank_command(interaction: discord.Interaction):
     if not await check_channel(interaction):
+        return
+    if not PIL_AVAILABLE:
+        await interaction.response.send_message(
+            "❌ Rank cards are temporarily unavailable (missing server dependency). An admin has been notified.",
+            ephemeral=True,
+        )
         return
     await interaction.response.defer()
     try:
