@@ -2429,20 +2429,34 @@ RANK_CARD_COLORS = {
 }
 
 
+_FONT_FALLBACK_LOGGED = False
+
+
 def _load_font(size: int, bold: bool = False):
-    """Tries a few common system font paths (Railway's base image is Debian-based
-    and typically ships DejaVu Sans), falling back to PIL's built-in bitmap font
-    if none are found — the card still renders, just with a plainer font."""
+    """Tries a few common system font paths, falling back to PIL's built-in font
+    (sized correctly, Pillow >= 10.1) if none are found — Railway's slim Python
+    image often does NOT ship these system font packages, so the fallback path
+    is the one that actually matters in production, not just a rare edge case."""
     candidates = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/dejavu/DejaVuSans.ttf",
     ]
     for path in candidates:
         try:
             return ImageFont.truetype(path, size)
         except Exception:
             continue
-    return ImageFont.load_default()
+    global _FONT_FALLBACK_LOGGED
+    if not _FONT_FALLBACK_LOGGED:
+        _FONT_FALLBACK_LOGGED = True
+        print("⚠️ No system TTF font found for rank cards — using Pillow's built-in font instead.")
+    try:
+        # Pillow >= 10.1 — a properly-sized built-in font, not the old tiny fixed one.
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        # Older Pillow without the size param — last resort, will look small.
+        return ImageFont.load_default()
 
 
 def _get_message_count(discord_id: str) -> int:
