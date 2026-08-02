@@ -2248,8 +2248,7 @@ RANK_SYSTEM_TOTAL_COINS = sum(coins for _, _, coins in TIER_ROLES)
 RANK_SYSTEM_INTRO = (
     "The more active you are in the Primal Hell Discord, the higher you climb.\n\n"
     "Every time you reach a new rank, you're credited with a **one-time Coin reward** "
-    "automatically — straight to your [Shop]({shop_url}) balance, no ticket needed.\n\n"
-    "Check your own progress anytime on the Shop's **Profile** tab."
+    "automatically — straight to your [Shop]({shop_url}) balance, no ticket needed."
 )
 
 RANK_EMOJIS = {
@@ -2283,6 +2282,16 @@ async def post_rank_system_command(interaction: discord.Interaction):
         emoji = RANK_EMOJIS.get(rank_label, "🔸")
         lines.append(f"{emoji} **{rank_label}** — {coins:,} Coins")
     embed.add_field(name="📈 Ranks & Rewards", value="\n".join(lines), inline=False)
+
+    embed.add_field(
+        name="🏅 Check Your Progress",
+        value=(
+            f"Use **/rank** anytime to see your personal rank card — your rank, your server "
+            f"placement, and your progress toward the next tier, right here in Discord.\n\n"
+            f"You can also check your progress on the [Shop]({SHOP_PUBLIC_URL})'s **Profile** tab."
+        ),
+        inline=False,
+    )
 
     embed.add_field(
         name="💰 Total Free-to-Play Earnings",
@@ -2474,11 +2483,15 @@ RANK_CARD_BADGE_FILES = {
 
 async def generate_rank_card(member: discord.Member) -> discord.File:
     message_count = _get_message_count(str(member.id))
-    placement, total_ranked = _get_rank_placement(str(member.id), message_count)
+    placement, _tracked_total = _get_rank_placement(str(member.id), message_count)
+    member_count = member.guild.member_count if member.guild else None
     current_tier, next_threshold, next_tier = _current_and_next_tier(message_count)
 
-    badge_area_w = 210
-    W, H = 934 + badge_area_w, 282
+    # Rendered at 2x and scaled down by Discord's display — this is what makes
+    # the card look crisp instead of soft/blurry on modern (high-DPI) screens.
+    S = 2
+    badge_area_w = 210 * S
+    W, H = (934 * S) + badge_area_w, 282 * S
     card = Image.new("RGB", (W, H), (18, 12, 11))
     draw = ImageDraw.Draw(card)
 
@@ -2491,24 +2504,25 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
         draw.line([(0, y), (W, y)], fill=(r, g, b))
 
     # Left ember accent stripe
-    draw.rectangle([0, 0, 10, H], fill=(255, 90, 31))
+    draw.rectangle([0, 0, 10 * S, H], fill=(255, 90, 31))
 
     # Avatar (circular, with a colored ring matching the current tier)
-    avatar_size = 190
-    avatar_x, avatar_y = 46, (H - avatar_size) // 2
+    avatar_size = 190 * S
+    avatar_x, avatar_y = 46 * S, (H - avatar_size) // 2
     ring_color = RANK_CARD_COLORS.get(current_tier, (255, 90, 31))
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(member.display_avatar.replace(size=256).url) as resp:
+            # Fetch at a resolution that comfortably covers the (now larger) avatar size
+            async with session.get(member.display_avatar.replace(size=512).url) as resp:
                 avatar_bytes = await resp.read()
-        avatar_img = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA").resize((avatar_size, avatar_size))
+        avatar_img = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA").resize((avatar_size, avatar_size), Image.LANCZOS)
         mask = Image.new("L", (avatar_size, avatar_size), 0)
         ImageDraw.Draw(mask).ellipse([0, 0, avatar_size, avatar_size], fill=255)
         # Ring
-        ring_pad = 6
+        ring_pad = 6 * S
         draw.ellipse(
             [avatar_x - ring_pad, avatar_y - ring_pad, avatar_x + avatar_size + ring_pad, avatar_y + avatar_size + ring_pad],
-            outline=ring_color, width=5,
+            outline=ring_color, width=5 * S,
         )
         card.paste(avatar_img, (avatar_x, avatar_y), mask)
     except Exception:
@@ -2527,10 +2541,10 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
             badge_img = Image.open(io.BytesIO(badge_bytes)).convert("RGBA")
             # Fit within a bounding box, preserving aspect ratio (badge art isn't
             # all the same shape — some are square, some landscape).
-            max_w, max_h = 170, 200
+            max_w, max_h = 170 * S, 200 * S
             bw, bh = badge_img.size
             scale = min(max_w / bw, max_h / bh)
-            badge_img = badge_img.resize((int(bw * scale), int(bh * scale)))
+            badge_img = badge_img.resize((int(bw * scale), int(bh * scale)), Image.LANCZOS)
             badge_x = W - badge_area_w + (badge_area_w - badge_img.width) // 2
             badge_y = (H - badge_img.height) // 2
             card.paste(badge_img, (badge_x, badge_y), badge_img)
@@ -2538,26 +2552,32 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
             # Best-effort — a missing/unreachable badge image shouldn't break the card.
             pass
 
-    text_x = avatar_x + avatar_size + 40
-    font_name = _load_font(40, bold=True)
-    font_tier = _load_font(26, bold=True)
-    font_label = _load_font(19)
-    font_small = _load_font(17)
+    text_x = avatar_x + avatar_size + (40 * S)
+    font_name = _load_font(int(46 * S), bold=True)
+    font_tier = _load_font(int(32 * S), bold=True)
+    font_label = _load_font(int(23 * S))
+    font_small = _load_font(int(21 * S))
 
     # Username
-    draw.text((text_x, 40), member.display_name, font=font_name, fill=(255, 255, 255))
+    draw.text((text_x, 40 * S), member.display_name, font=font_name, fill=(255, 255, 255))
 
     # Current tier badge text
     tier_text = current_tier if current_tier else "Unranked"
-    draw.text((text_x, 92), f"● {tier_text}", font=font_tier, fill=ring_color)
+    draw.text((text_x, 100 * S), f"● {tier_text}", font=font_tier, fill=ring_color)
 
-    # Placement
-    placement_text = f"Server Rank #{placement} of {total_ranked}" if total_ranked > 0 else "Not ranked yet"
-    draw.text((text_x, 132), placement_text, font=font_label, fill=(200, 190, 180))
+    # Placement — denominator is the whole server's member count, not just the
+    # (much smaller) set of members with tracked message activity.
+    if member_count:
+        placement_text = f"Server Rank #{placement} of {member_count}"
+    elif _tracked_total > 0:
+        placement_text = f"Server Rank #{placement}"
+    else:
+        placement_text = "Not ranked yet"
+    draw.text((text_x, 144 * S), placement_text, font=font_label, fill=(200, 190, 180))
 
     # Progress bar toward next rank (stops before the badge area on the right)
-    bar_x, bar_y, bar_w, bar_h = text_x, 178, (W - badge_area_w) - text_x - 30, 26
-    draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=13, fill=(45, 32, 28))
+    bar_x, bar_y, bar_w, bar_h = text_x, 192 * S, (W - badge_area_w) - text_x - (30 * S), 28 * S
+    draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=bar_h // 2, fill=(45, 32, 28))
     if next_threshold:
         prev_threshold = 0
         for tier_name, threshold, _coins in TIER_ROLES:
@@ -2568,12 +2588,12 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
         progress = max(0.0, min(1.0, (message_count - prev_threshold) / span))
         fill_w = int(bar_w * progress)
         if fill_w > 0:
-            draw.rounded_rectangle([bar_x, bar_y, bar_x + fill_w, bar_y + bar_h], radius=13, fill=(255, 90, 31))
-        progress_text = f"{message_count:,} / {next_threshold:,} — Next: {next_tier}"
+            draw.rounded_rectangle([bar_x, bar_y, bar_x + fill_w, bar_y + bar_h], radius=bar_h // 2, fill=(255, 90, 31))
+        progress_text = f"{int(progress * 100)}% — Next: {next_tier}"
     else:
-        draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=13, fill=ring_color)
+        draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=bar_h // 2, fill=ring_color)
         progress_text = "Max Rank Reached — Nightmare"
-    draw.text((bar_x, bar_y + bar_h + 8), progress_text, font=font_small, fill=(200, 190, 180))
+    draw.text((bar_x, bar_y + bar_h + (10 * S)), progress_text, font=font_small, fill=(200, 190, 180))
 
     buffer = io.BytesIO()
     card.save(buffer, format="PNG")
