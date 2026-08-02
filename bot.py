@@ -2776,9 +2776,10 @@ async def on_member_update(before: discord.Member, after: discord.Member):
         achieved_at = time.time()
         is_new, rank = db_record_hall_of_fame(str(after.id), joined_at, achieved_at, confirmed=True)
         if is_new:
+            days_taken = max(0.0, (achieved_at - joined_at) / 86400)
+            asyncio.create_task(push_hall_of_fame_to_shop(str(after.id), days_taken, True))
             hof_channel = discord.utils.get(after.guild.channels, name=HALL_OF_FAME_CHANNEL)
             if hof_channel:
-                days_taken = max(0.0, (achieved_at - joined_at) / 86400)
                 medals = {1: "🥇", 2: "🥈", 3: "🥉"}
                 rank_text = medals.get(rank, f"#{rank}")
                 await hof_channel.send(
@@ -2843,6 +2844,7 @@ async def sync_hall_of_fame_on_startup():
                 tag = "confirmed via audit log" if confirmed else "NOT confirmed — days-taken may be wrong"
                 days_taken = max(0.0, (achieved_at - joined_at) / 86400)
                 print(f"👑 Hall of Fame backfill: {member.display_name} — {days_taken:.0f} days, rank #{rank} ({tag})")
+                await push_hall_of_fame_to_shop(str(member.id), days_taken, confirmed)
 
 
 # ── Discord-activity tier reward: direct Coin credit (no promo code needed) ────
@@ -2904,6 +2906,44 @@ async def push_tier_progress_to_shop(discord_id: str, message_count: int):
                 pass
     except Exception:
         pass
+
+
+async def push_hall_of_fame_to_shop(discord_id: str, days_taken: float, confirmed: bool):
+    """Mirrors a new Hall of Fame (Deathknight Slayer) entry to the shop so it
+    can show a Hall of Fame preview on the Spotlight tab. Best-effort."""
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        return
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{SHOP_API_URL}/api/admin/sync-hall-of-fame",
+                headers=headers,
+                json={"discordId": discord_id, "daysTaken": days_taken, "confirmed": confirmed},
+                timeout=10,
+            ):
+                pass
+    except Exception as e:
+        print(f"⚠️ Could not sync Hall of Fame entry for {discord_id}: {e}")
+
+
+async def push_rank_up_to_shop(discord_id: str, rank_name: str):
+    """Logs a rank-up event to the shop for the Spotlight tab's live activity
+    feed ('XY just reached Mythic!'). Best-effort."""
+    if not SHOP_API_URL or not BOT_SYNC_SECRET:
+        return
+    headers = {"x-bot-secret": BOT_SYNC_SECRET}
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.post(
+                f"{SHOP_API_URL}/api/admin/log-rank-up",
+                headers=headers,
+                json={"discordId": discord_id, "rankName": rank_name.replace("Rank - ", "")},
+                timeout=10,
+            ):
+                pass
+    except Exception as e:
+        print(f"⚠️ Could not log rank-up for {discord_id}: {e}")
 
 
 # ── Referral Bonus (invite tracking → direct Coin credit) ─────────────────────
@@ -3135,6 +3175,9 @@ async def on_message(message: discord.Message):
 
                     # Directly credit Coins and DM — no promo code needed
                     asyncio.create_task(grant_tier_reward(uid, coins, tier_name))
+
+                    # Log this promotion for the Shop's Spotlight "recent activity" feed
+                    asyncio.create_task(push_rank_up_to_shop(uid, tier_name))
 
                     # Public shoutout so everyone sees the promotion
                     shoutout_ch = discord.utils.get(message.guild.channels, name=SHOUTOUTS_CHANNEL)
