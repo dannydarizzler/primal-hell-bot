@@ -10,6 +10,8 @@ import struct
 import sqlite3
 import json
 import aiohttp
+import io
+from PIL import Image, ImageDraw, ImageFont
 
 # ── Bot Setup ──────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
@@ -257,6 +259,11 @@ async def commands_command(interaction: discord.Interaction):
             "`/mods` — List of all active mods with descriptions\n"
             "`/serverstatus` — Live player count & map"
         ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🏅 Rank",
+        value="`/rank` — Shows your Discord activity rank card",
         inline=False,
     )
     embed.add_field(
@@ -692,6 +699,17 @@ async def boss_fight_command(interaction: discord.Interaction):
 
     embed.add_field(
         name="🗺️ Ragnarok — Nunatak (Ice Wyvern)",
+        value=(
+            "**Element Reward per Difficulty:**\n"
+            "• Gamma → **250** Element\n"
+            "• Beta → **500** Element\n"
+            "• Alpha → **1,000** Element"
+        ),
+        inline=True,
+    )
+
+    embed.add_field(
+        name="🗺️ Valguero — Grendel (Megaraptor)",
         value=(
             "**Element Reward per Difficulty:**\n"
             "• Gamma → **250** Element\n"
@@ -2386,6 +2404,158 @@ async def whoami_command(interaction: discord.Interaction):
     )
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+# ── /rank — Tatsu-style visual rank card ────────────────────────────────────────
+RANK_CARD_COLORS = {
+    "Toxic": (154, 205, 50), "Alpha": (220, 90, 60), "Elemental": (90, 200, 220),
+    "Shadow": (150, 90, 220), "Mythic": (200, 140, 230), "Legendary": (230, 180, 60),
+    "Demonic": (220, 50, 50), "Spirit": (220, 220, 230), "Origin": (240, 170, 60),
+    "Nightmare": (180, 30, 30),
+}
+
+
+def _load_font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
+    """Tries a few common system font paths (Railway's base image is Debian-based
+    and typically ships DejaVu Sans), falling back to PIL's built-in bitmap font
+    if none are found — the card still renders, just with a plainer font."""
+    candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    ]
+    for path in candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    return ImageFont.load_default()
+
+
+def _get_message_count(discord_id: str) -> int:
+    conn = sqlite3.connect(DB_PATH)
+    row = conn.execute("SELECT count FROM message_counts WHERE discord_id = ?", (discord_id,)).fetchone()
+    conn.close()
+    return row[0] if row else 0
+
+
+def _get_rank_placement(discord_id: str, message_count: int) -> tuple[int, int]:
+    """Returns (placement, total_ranked) — placement is 1-based, among everyone
+    with at least 1 tracked message."""
+    conn = sqlite3.connect(DB_PATH)
+    total = conn.execute("SELECT COUNT(*) FROM message_counts WHERE count > 0").fetchone()[0]
+    ahead = conn.execute("SELECT COUNT(*) FROM message_counts WHERE count > ?", (message_count,)).fetchone()[0]
+    conn.close()
+    return ahead + 1, total
+
+
+def _current_and_next_tier(message_count: int):
+    """Returns (current_tier_name_or_None, next_threshold_or_None, next_tier_name_or_None)."""
+    current = None
+    for tier_name, threshold, _coins in TIER_ROLES:
+        if message_count >= threshold:
+            current = tier_name.replace("Rank - ", "")
+        else:
+            return current, threshold, tier_name.replace("Rank - ", "")
+    return current, None, None  # maxed out (Nightmare)
+
+
+async def generate_rank_card(member: discord.Member) -> discord.File:
+    message_count = _get_message_count(str(member.id))
+    placement, total_ranked = _get_rank_placement(str(member.id), message_count)
+    current_tier, next_threshold, next_tier = _current_and_next_tier(message_count)
+
+    W, H = 934, 282
+    card = Image.new("RGB", (W, H), (18, 12, 11))
+    draw = ImageDraw.Draw(card)
+
+    # Background: subtle vertical gradient, dark obsidian → slightly warmer
+    for y in range(H):
+        t = y / H
+        r = int(18 + t * 14)
+        g = int(12 + t * 6)
+        b = int(11 + t * 6)
+        draw.line([(0, y), (W, y)], fill=(r, g, b))
+
+    # Left ember accent stripe
+    draw.rectangle([0, 0, 10, H], fill=(255, 90, 31))
+
+    # Avatar (circular, with a colored ring matching the current tier)
+    avatar_size = 190
+    avatar_x, avatar_y = 46, (H - avatar_size) // 2
+    ring_color = RANK_CARD_COLORS.get(current_tier, (255, 90, 31))
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(member.display_avatar.replace(size=256).url) as resp:
+                avatar_bytes = await resp.read()
+        avatar_img = Image.open(io.BytesIO(avatar_bytes)).convert("RGBA").resize((avatar_size, avatar_size))
+        mask = Image.new("L", (avatar_size, avatar_size), 0)
+        ImageDraw.Draw(mask).ellipse([0, 0, avatar_size, avatar_size], fill=255)
+        # Ring
+        ring_pad = 6
+        draw.ellipse(
+            [avatar_x - ring_pad, avatar_y - ring_pad, avatar_x + avatar_size + ring_pad, avatar_y + avatar_size + ring_pad],
+            outline=ring_color, width=5,
+        )
+        card.paste(avatar_img, (avatar_x, avatar_y), mask)
+    except Exception:
+        # Best-effort — if the avatar can't be fetched, just leave the space empty
+        # rather than failing the whole card.
+        pass
+
+    text_x = avatar_x + avatar_size + 40
+    font_name = _load_font(40, bold=True)
+    font_tier = _load_font(26, bold=True)
+    font_label = _load_font(19)
+    font_small = _load_font(17)
+
+    # Username
+    draw.text((text_x, 40), member.display_name, font=font_name, fill=(255, 255, 255))
+
+    # Current tier badge text
+    tier_text = current_tier if current_tier else "Unranked"
+    draw.text((text_x, 92), f"● {tier_text}", font=font_tier, fill=ring_color)
+
+    # Placement
+    placement_text = f"Server Rank #{placement} of {total_ranked}" if total_ranked > 0 else "Not ranked yet"
+    draw.text((text_x, 132), placement_text, font=font_label, fill=(200, 190, 180))
+
+    # Progress bar toward next rank
+    bar_x, bar_y, bar_w, bar_h = text_x, 178, W - text_x - 50, 26
+    draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=13, fill=(45, 32, 28))
+    if next_threshold:
+        prev_threshold = 0
+        for tier_name, threshold, _coins in TIER_ROLES:
+            if tier_name.replace("Rank - ", "") == current_tier:
+                break
+            prev_threshold = threshold
+        span = max(1, next_threshold - prev_threshold)
+        progress = max(0.0, min(1.0, (message_count - prev_threshold) / span))
+        fill_w = int(bar_w * progress)
+        if fill_w > 0:
+            draw.rounded_rectangle([bar_x, bar_y, bar_x + fill_w, bar_y + bar_h], radius=13, fill=(255, 90, 31))
+        progress_text = f"{message_count:,} / {next_threshold:,} — Next: {next_tier}"
+    else:
+        draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=13, fill=ring_color)
+        progress_text = "Max Rank Reached — Nightmare"
+    draw.text((bar_x, bar_y + bar_h + 8), progress_text, font=font_small, fill=(200, 190, 180))
+
+    buffer = io.BytesIO()
+    card.save(buffer, format="PNG")
+    buffer.seek(0)
+    return discord.File(buffer, filename="rank_card.png")
+
+
+@tree.command(name="rank", description="Shows your Primal Hell rank card")
+async def rank_command(interaction: discord.Interaction):
+    if not await check_channel(interaction):
+        return
+    await interaction.response.defer()
+    try:
+        file = await generate_rank_card(interaction.user)
+        await interaction.followup.send(file=file)
+    except Exception as e:
+        print(f"⚠️ Could not generate rank card for {interaction.user.id}: {e}")
+        await interaction.followup.send("❌ Could not generate your rank card right now. Please try again later.", ephemeral=True)
 
 
 # ── /message-count ────────────────────────────────────────────────────────────────
