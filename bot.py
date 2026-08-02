@@ -2189,6 +2189,151 @@ async def post_server_rules_command(interaction: discord.Interaction, channel: d
     await interaction.response.send_message(f"✅ Server rules embed posted in {channel.mention}.", ephemeral=True)
 
 
+# ── /post-server-info ───────────────────────────────────────────────────────────
+@tree.command(name="post-server-info", description="[Admin only] Post the Server Info embed in a channel")
+@app_commands.describe(channel="Which channel should the embed be posted in?")
+async def post_server_info_command(interaction: discord.Interaction, channel: discord.TextChannel):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(SHOP_EMBED_ROLES):
+        roles_text = " / ".join(SHOP_EMBED_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can post the server info.", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title="🔥 Primal Hell — Server Information",
+        description="Welcome to Primal Hell! Everything you need to know to get started, all in one place.",
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+
+    embed.add_field(
+        name="🎮 How to Join",
+        value=(
+            "Open ARK: Survival Ascended → **Join Server** → search for:\n\n"
+            f"**`{ARK_SERVER_NAME}`**\n\n"
+            "Type that exact name into the server browser search bar to find us instantly."
+        ),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="🚀 Getting Started",
+        value=(
+            "1️⃣ Join the server — see **How to Join** above\n"
+            f"2️⃣ Create your free account on the [Primal Hell Shop]({SHOP_PUBLIC_URL}) — get your Discord ID with **/whoami**\n"
+            "3️⃣ Run **/commands** for the full list of everything the bot can do\n"
+            "4️⃣ Run **/rank** anytime to see your Discord activity rank card\n"
+            "5️⃣ Start chatting to earn Primal Coins automatically — see below!"
+        ),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="🪙 Primal Coins — Our Server Currency",
+        value=(
+            f"Primal Coins are Primal Hell's own currency, spent in the [Shop]({SHOP_PUBLIC_URL}) on Mystery Chests, "
+            "guaranteed item packs, boss rewards, and more.\n\n"
+            "**Earn them for free by:**\n"
+            "• Being active in Discord — our rank system (`/rank`, see `#｜rank-system`)\n"
+            "• Spinning the daily Lucky Wheel on the Shop's Home tab\n"
+            "• Inviting friends — referral bonus per new member\n\n"
+            "Or top up instantly with PayPal for bonus Coins."
+        ),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="🔧 Active Mods",
+        value=(
+            "• ARK Primal Chaos\n"
+            "• Awesome Spyglass\n"
+            "• Der Dino Finder\n"
+            "• Dino Depot\n"
+            "• TG Stacking Mod 1000-50\n"
+            "• Upgrade Station\n"
+            "• A Simple Performance Mod (60 FPS)\n"
+            "• Crash Protector\n"
+            "• Tribute Table\n"
+            "• Auto Engrams\n"
+            "• Better Breeding\n\n"
+            "Use **/mods** for full descriptions of each."
+        ),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="📦 Custom Supply Crates",
+        value=(
+            "⚪ White → Starter Kit\n"
+            "🟢 Green → Resources & Taming\n"
+            "🔵 Blue → Alpha/Volcanic/Mythic Gear\n"
+            "🟣 Purple → Resources\n"
+            "🟡 Yellow → Saddles\n"
+            "🔴 Red → Endgame Exclusives\n"
+            "🌊 Deep-Sea → Ragnarok Only\n\n"
+            "Use **/drop <color>** or **/drops** for full contents."
+        ),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="⚙️ Player Stats (per Level-Up)",
+        value=(
+            "Health ×2.0 · Stamina ×2.0 · Oxygen ×1.0 · Food ×1.0 · Water ×1.0\n"
+            "Weight ×10.0 · Melee Damage ×2.0 · Movement Speed ×2.0\n"
+            "Temperature Fortitude ×5.0 · Crafting Speed ×50.0"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="⚙️ Tamed Dino Stats (per Level-Up)",
+        value=(
+            "Health ×1.0 · Stamina ×2.0 · Oxygen ×1.0 · Food ×1.0 · Water ×1.0\n"
+            "Weight ×10.0 · Melee Damage ×1.0 · Movement Speed ×1.0\n"
+            "Temperature Fortitude ×1.0 · Crafting Speed ×1.0"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🥚 Breeding",
+        value=(
+            "Mating Interval ×0.1 · Egg Hatching ×40 · Baby Maturing ×40\n"
+            "Imprint Amount ×10 · Egg Lay Interval ×0.25"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="✨ XP Multipliers",
+        value=(
+            "Generic ×3 · Crafting ×3 · Cave Kill ×3 · Boss Kill ×3\n"
+            "Alpha Kill ×3 · Wild Kill ×3 · Kill ×3 · Harvest ×3"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🌍 World & Gameplay",
+        value=(
+            "Harvest Amount ×5 · Crafting Skill Bonus ×5 · Turret Damage ×2.5\n"
+            "Engram Points ×2.0 · Fall Damage ×0.25\n"
+            "Flyer Speed Leveling — Disabled · Corpse Locator — Active\n"
+            "Last Death Mark — Active · Damage Numbers — Disabled"
+        ),
+        inline=False,
+    )
+
+    embed.add_field(
+        name="❓ Need More?",
+        value=(
+            f"Check **{COMMANDS_CHANNEL}** for details on drops, taming, mods, or to drop a suggestion.\n"
+            "Little hint ;) Use **/commands** to see everything the bot can do."
+        ),
+        inline=False,
+    )
+
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    await channel.send(embed=embed)
+    await interaction.response.send_message(f"✅ Server info posted in {channel.mention}.", ephemeral=True)
+
+
 # ── /post-hall-of-fame ─────────────────────────────────────────────────────────
 HALL_OF_FAME_INTRO = (
     "Only the strongest survive Primal Hell.\n\n"
@@ -2332,6 +2477,7 @@ async def admin_commands_command(interaction: discord.Interaction):
             "`/post-shop-embed` — Post the Shop announcement embed\n"
             "`/post-vip-embed` — Post the VIP Status info embed\n"
             "`/post-server-rules` — Post the Server Rules embed\n"
+            "`/post-server-info` — Post the Server Info embed (how to join, mods, settings, etc.)\n"
             "`/post-hall-of-fame` — Post the Deathknight Slayer Hall of Fame ranking\n"
             "`/post-rank-system` — Post the Rank System info embed in #rank-system"
         ),
@@ -2567,17 +2713,17 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
             pass
 
     text_x = avatar_x + avatar_size + (40 * S)
-    font_name = _load_font(int(46 * S), bold=True)
-    font_tier = _load_font(int(32 * S), bold=True)
-    font_label = _load_font(int(23 * S))
-    font_small = _load_font(int(21 * S))
+    font_name = _load_font(int(55 * S), bold=True)
+    font_tier = _load_font(int(38 * S), bold=True)
+    font_label = _load_font(int(28 * S))
+    font_small = _load_font(int(25 * S))
 
     # Username
     draw.text((text_x, 40 * S), member.display_name, font=font_name, fill=(255, 255, 255))
 
     # Current tier badge text
     tier_text = current_tier if current_tier else "Unranked"
-    draw.text((text_x, 100 * S), f"● {tier_text}", font=font_tier, fill=ring_color)
+    draw.text((text_x, 106 * S), f"● {tier_text}", font=font_tier, fill=ring_color)
 
     # Placement — denominator is the whole server's member count, not just the
     # (much smaller) set of members with tracked message activity.
@@ -2587,10 +2733,10 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
         placement_text = f"Server Rank #{placement}"
     else:
         placement_text = "Not ranked yet"
-    draw.text((text_x, 144 * S), placement_text, font=font_label, fill=(200, 190, 180))
+    draw.text((text_x, 154 * S), placement_text, font=font_label, fill=(200, 190, 180))
 
     # Progress bar toward next rank (stops before the badge area on the right)
-    bar_x, bar_y, bar_w, bar_h = text_x, 192 * S, (W - badge_area_w) - text_x - (30 * S), 28 * S
+    bar_x, bar_y, bar_w, bar_h = text_x, 202 * S, (W - badge_area_w) - text_x - (30 * S), 28 * S
     draw.rounded_rectangle([bar_x, bar_y, bar_x + bar_w, bar_y + bar_h], radius=bar_h // 2, fill=(45, 32, 28))
     if next_threshold:
         prev_threshold = 0
