@@ -2595,6 +2595,12 @@ async def generate_rank_card(member: discord.Member) -> discord.File:
         progress_text = "Max Rank Reached — Nightmare"
     draw.text((bar_x, bar_y + bar_h + (10 * S)), progress_text, font=font_small, fill=(200, 190, 180))
 
+    # Downscale back to the original display size — we rendered at S=2 purely for
+    # crisper anti-aliased text/edges (supersampling), but keeping the FINAL
+    # attachment at a modest pixel size avoids Discord's own auto-preview shrinking
+    # it down even smaller than before on very large images.
+    card = card.resize((W // S, H // S), Image.LANCZOS)
+
     buffer = io.BytesIO()
     card.save(buffer, format="PNG")
     buffer.seek(0)
