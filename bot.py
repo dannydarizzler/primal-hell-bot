@@ -503,7 +503,9 @@ async def mods_command(interaction: discord.Interaction):
             "**Upgrade Station** — Upgrade items to higher quality tiers (ARK base items only)\n"
             "**Pull It!** — Pull nearby resources straight into your crafting or repair queue\n"
             "**Greenhouse Glass Fix** — Fixes greenhouse glass opacity so it actually looks like glass\n"
-            "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required"
+            "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required\n"
+            "**AP: Death Recovery** — Cross-platform mod that adds a structure to recover your items after death\n"
+            "**Alfa Oceanic Platforms** — Ocean platforms of different types to build on"
         ),
         inline=False,
     )
@@ -2235,8 +2237,7 @@ async def post_server_info_command(interaction: discord.Interaction, channel: di
             "**Earn them for free by:**\n"
             "• Being active in Discord — our rank system (`/rank`, see `#｜rank-system`)\n"
             "• Spinning the daily Lucky Wheel on the Shop's Home tab\n"
-            "• Inviting friends — referral bonus per new member\n\n"
-            "Or top up instantly with PayPal for bonus Coins."
+            "• Inviting friends — referral bonus per new member"
         ),
         inline=False,
     )
@@ -2249,12 +2250,16 @@ async def post_server_info_command(interaction: discord.Interaction, channel: di
             "• Der Dino Finder\n"
             "• Dino Depot\n"
             "• TG Stacking Mod 1000-50\n"
-            "• Upgrade Station\n"
             "• A Simple Performance Mod (60 FPS)\n"
             "• Crash Protector\n"
+            "• Better Breeding\n"
             "• Tribute Table\n"
             "• Auto Engrams\n"
-            "• Better Breeding\n\n"
+            "• Upgrade Station\n"
+            "• Pull It!\n"
+            "• Greenhouse Glass Fix\n"
+            "• AP: Death Recovery (Cross-platform)\n"
+            "• Alfa Oceanic Platforms\n\n"
             "Use **/mods** for full descriptions of each."
         ),
         inline=False,
@@ -2278,46 +2283,74 @@ async def post_server_info_command(interaction: discord.Interaction, channel: di
     embed.add_field(
         name="⚙️ Player Stats (per Level-Up)",
         value=(
-            "Health ×2.0 · Stamina ×2.0 · Oxygen ×1.0 · Food ×1.0 · Water ×1.0\n"
-            "Weight ×10.0 · Melee Damage ×2.0 · Movement Speed ×2.0\n"
-            "Temperature Fortitude ×5.0 · Crafting Speed ×50.0"
+            "Health ×2.0\n"
+            "Stamina ×2.0\n"
+            "Oxygen ×1.0\n"
+            "Food ×1.0\n"
+            "Water ×1.0\n"
+            "Weight ×10.0\n"
+            "Melee Damage ×2.0\n"
+            "Movement Speed ×2.0\n"
+            "Temperature Fortitude ×5.0\n"
+            "Crafting Speed ×50.0"
         ),
-        inline=False,
+        inline=True,
     )
     embed.add_field(
         name="⚙️ Tamed Dino Stats (per Level-Up)",
         value=(
-            "Health ×1.0 · Stamina ×2.0 · Oxygen ×1.0 · Food ×1.0 · Water ×1.0\n"
-            "Weight ×10.0 · Melee Damage ×1.0 · Movement Speed ×1.0\n"
-            "Temperature Fortitude ×1.0 · Crafting Speed ×1.0"
+            "Health ×1.0\n"
+            "Stamina ×2.0\n"
+            "Oxygen ×1.0\n"
+            "Food ×1.0\n"
+            "Water ×1.0\n"
+            "Weight ×10.0\n"
+            "Melee Damage ×1.0\n"
+            "Movement Speed ×1.0\n"
+            "Temperature Fortitude ×1.0\n"
+            "Crafting Speed ×1.0"
         ),
-        inline=False,
+        inline=True,
     )
     embed.add_field(
         name="🥚 Breeding",
         value=(
-            "Mating Interval ×0.1 · Egg Hatching ×40 · Baby Maturing ×40\n"
-            "Imprint Amount ×10 · Egg Lay Interval ×0.25"
+            "Mating Interval ×0.1\n"
+            "Egg Hatching ×40\n"
+            "Baby Maturing ×40\n"
+            "Imprint Amount ×10\n"
+            "Egg Lay Interval ×0.25"
         ),
-        inline=False,
+        inline=True,
     )
     embed.add_field(
         name="✨ XP Multipliers",
         value=(
-            "Generic ×3 · Crafting ×3 · Cave Kill ×3 · Boss Kill ×3\n"
-            "Alpha Kill ×3 · Wild Kill ×3 · Kill ×3 · Harvest ×3"
+            "Generic ×3\n"
+            "Crafting ×3\n"
+            "Cave Kill ×3\n"
+            "Boss Kill ×3\n"
+            "Alpha Kill ×3\n"
+            "Wild Kill ×3\n"
+            "Kill ×3\n"
+            "Harvest ×3"
         ),
-        inline=False,
+        inline=True,
     )
     embed.add_field(
         name="🌍 World & Gameplay",
         value=(
-            "Harvest Amount ×5 · Crafting Skill Bonus ×5 · Turret Damage ×2.5\n"
-            "Engram Points ×2.0 · Fall Damage ×0.25\n"
-            "Flyer Speed Leveling — Disabled · Corpse Locator — Active\n"
-            "Last Death Mark — Active · Damage Numbers — Disabled"
+            "Harvest Amount ×5\n"
+            "Crafting Skill Bonus ×5\n"
+            "Turret Damage ×2.5\n"
+            "Engram Points ×2.0\n"
+            "Fall Damage ×0.25\n"
+            "Flyer Speed Leveling — Disabled\n"
+            "Corpse Locator — Active\n"
+            "Last Death Mark — Active\n"
+            "Damage Numbers — Disabled"
         ),
-        inline=False,
+        inline=True,
     )
 
     embed.add_field(
