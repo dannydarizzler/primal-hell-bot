@@ -2212,7 +2212,8 @@ async def post_server_info_command(interaction: discord.Interaction, channel: di
         value=(
             "Open ARK: Survival Ascended → **Join Server** → search for:\n\n"
             f"**`{ARK_SERVER_NAME}`**\n\n"
-            "Type that exact name into the server browser search bar to find us instantly."
+            "Type that exact name into the server browser search bar to find us instantly.\n\n"
+            "⚠️ **Remove all filters** in the server browser first (mods, region, etc.) — active filters can hide us from search results."
         ),
         inline=False,
     )
@@ -2316,8 +2317,8 @@ async def post_server_info_command(interaction: discord.Interaction, channel: di
         name="🥚 Breeding",
         value=(
             "Mating Interval ×0.1\n"
-            "Egg Hatching ×40\n"
-            "Baby Maturing ×40\n"
+            "Egg Hatching ×50\n"
+            "Baby Maturing ×50\n"
             "Imprint Amount ×10\n"
             "Egg Lay Interval ×0.25"
         ),
