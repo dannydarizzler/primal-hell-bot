@@ -3702,16 +3702,14 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
 INFO_MENU_AUTO_DELETE_SECONDS = 300  # 5 minutes
 
 # Emoji names — upload these exact names as server emojis (Settings → Emoji).
-# Already uploaded: MagnifyingGlass, Primal_Coin, Red_Beacon, ovis
-# Still needed: Egg (Breeding), PC (Commands) — upload with these names, or
-# tell me the names you used and I'll adjust the two lines below.
+# Already uploaded: MagnifyingGlass, Primal_Coin, Red_Beacon, ovis, Rex_Egg
+# Commands uses the standard 💻 emoji — no upload needed.
 INFO_MENU_EMOJI_NAMES = {
     "settings": "MagnifyingGlass",
     "currency": "Primal_Coin",
     "drops":    "Red_Beacon",
-    "breeding": "Egg",
+    "breeding": "Rex_Egg",
     "meta":     "ovis",
-    "commands": "PC",
 }
 
 
@@ -3724,9 +3722,16 @@ def _info_emoji(guild: discord.Guild, key: str):
     return discord.utils.get(guild.emojis, name=name)
 
 
+def _info_emoji_str(guild: discord.Guild, key: str, fallback: str) -> str:
+    """Same lookup as _info_emoji, but returns the emoji's <:name:id> render
+    string (or the unicode fallback if the custom emoji isn't uploaded yet)."""
+    emoji = _info_emoji(guild, key)
+    return str(emoji) if emoji else fallback
+
+
 def build_info_settings_embed(guild: discord.Guild) -> discord.Embed:
     embed = discord.Embed(
-        title="🔍 Server Settings — Multipliers & World Settings",
+        title=f"{_info_emoji_str(guild, 'settings', '🔍')} Server Settings — Multipliers & World Settings",
         description="Every rate and multiplier currently active on Primal Hell.",
         color=discord.Color.from_rgb(255, 90, 31),
     )
@@ -3775,10 +3780,11 @@ def build_info_settings_embed(guild: discord.Guild) -> discord.Embed:
 
 
 def build_info_currency_embed(guild: discord.Guild) -> discord.Embed:
+    coin = _info_emoji_str(guild, "currency", "🪙")
     embed = discord.Embed(
-        title="🪙 Primal Coins — Server Currency",
+        title=f"{coin} Primal Coins — Server Currency",
         description=(
-            f"Primal Coins are Primal Hell's own currency, spent in the [Shop]({SHOP_PUBLIC_URL}) "
+            f"{coin} **Primal Coins** are Primal Hell's own currency, spent in the [Shop]({SHOP_PUBLIC_URL}) "
             "on Mystery Chests, guaranteed item packs, boss rewards, and more."
         ),
         color=discord.Color.from_rgb(255, 90, 31),
@@ -3789,12 +3795,12 @@ def build_info_currency_embed(guild: discord.Guild) -> discord.Embed:
             "• Being active in Discord — our rank system (`/rank`, see `#｜rank-system`)\n"
             "• Spinning the daily Lucky Wheel on the Shop's Home tab\n"
             "• Inviting friends — referral bonus per new, unique member\n"
-            "• VIP boosters also get a monthly Coin drop + their own VIP Lucky Wheel"
+            f"• VIP boosters also get a monthly {coin} drop + their own VIP Lucky Wheel"
         ),
         inline=False,
     )
     embed.add_field(
-        name="💰 Spend Coins",
+        name=f"{coin} Spend Coins",
         value=(
             f"Head to the [Primal Hell Shop]({SHOP_PUBLIC_URL}) to open Mystery Chests, buy guaranteed "
             "item packs, or grab Combo Packs. Use `/balance` anytime to check your current total, "
@@ -3807,15 +3813,16 @@ def build_info_currency_embed(guild: discord.Guild) -> discord.Embed:
 
 
 def build_info_drops_embed(guild: discord.Guild) -> discord.Embed:
+    beacon = _info_emoji_str(guild, "drops", "🔴")
     embed = discord.Embed(
-        title="🔴 Drops — Custom Supply Crates",
+        title=f"{beacon} Drops — Custom Supply Crates",
         description=(
             "⚪ White → Starter Kit\n"
             "🟢 Green → Resources & Taming\n"
             "🔵 Blue → Alpha/Volcanic/Mythic Gear\n"
             "🟣 Purple → Resources\n"
             "🟡 Yellow → Saddles\n"
-            "🔴 Red → Endgame Exclusives\n"
+            f"{beacon} Red → Endgame Exclusives\n"
             "🌊 Deep-Sea → Ragnarok Only\n\n"
             f"For the full, detailed contents of every drop, use **/drops** or **/drop <color>** in {COMMANDS_CHANNEL}."
         ),
@@ -3827,7 +3834,7 @@ def build_info_drops_embed(guild: discord.Guild) -> discord.Embed:
 
 def build_info_breeding_embed(guild: discord.Guild) -> discord.Embed:
     embed = discord.Embed(
-        title="🥚 Breeding — Rates & Raising",
+        title=f"{_info_emoji_str(guild, 'breeding', '🥚')} Breeding — Rates & Raising",
         color=discord.Color.from_rgb(255, 90, 31),
     )
     embed.add_field(
@@ -3852,12 +3859,13 @@ def build_info_breeding_embed(guild: discord.Guild) -> discord.Embed:
 
 
 def build_info_meta_embed(guild: discord.Guild) -> discord.Embed:
+    ovis = _info_emoji_str(guild, "meta", "🐑")
     embed = discord.Embed(
         title="👑 Current Meta — Primal Hell Cluster",
         color=discord.Color.from_rgb(255, 90, 31),
     )
     embed.add_field(
-        name="🐑 Demonic Ovis",
+        name=f"{ovis} Demonic Ovis",
         value="Stacks you with Demonic Hide and Demonic Blood, which makes farming Demonic Ingots and every Demonic Blueprint easy.",
         inline=False,
     )
@@ -3923,14 +3931,18 @@ INFO_MENU_BUILDERS = {
 
 
 class InfoDropdown(discord.ui.Select):
-    def __init__(self):
+    def __init__(self, guild: discord.Guild = None):
+        # Emojis are resolved from the guild's live custom emojis right here,
+        # at message-send time — Discord renders a select's option emojis from
+        # what was sent with the message, so resolving them later (e.g. inside
+        # the callback) never actually shows up on the dropdown itself.
         options = [
-            discord.SelectOption(label="Server Settings", value="settings", description="All multipliers and world settings", emoji=None),
-            discord.SelectOption(label="Server Currency",  value="currency", description="Primal Coins — how to earn & spend them", emoji=None),
-            discord.SelectOption(label="Drops",            value="drops",    description="Supply crate overview", emoji=None),
-            discord.SelectOption(label="Breeding",         value="breeding", description="Breeding rates & Dino Depot", emoji=None),
-            discord.SelectOption(label="Meta",             value="meta",     description="Current best farming meta", emoji=None),
-            discord.SelectOption(label="Commands",         value="commands", description="Everything the bot can do", emoji=None),
+            discord.SelectOption(label="Server Settings", value="settings", description="All multipliers and world settings", emoji=_info_emoji(guild, "settings")),
+            discord.SelectOption(label="Server Currency",  value="currency", description="Primal Coins — how to earn & spend them", emoji=_info_emoji(guild, "currency")),
+            discord.SelectOption(label="Drops",            value="drops",    description="Supply crate overview", emoji=_info_emoji(guild, "drops")),
+            discord.SelectOption(label="Breeding",         value="breeding", description="Breeding rates & Dino Depot", emoji=_info_emoji(guild, "breeding")),
+            discord.SelectOption(label="Meta",             value="meta",     description="Current best farming meta", emoji=_info_emoji(guild, "meta")),
+            discord.SelectOption(label="Commands",         value="commands", description="Everything the bot can do", emoji="💻"),
         ]
         super().__init__(
             placeholder="Click here to see settings",
@@ -3941,13 +3953,6 @@ class InfoDropdown(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
-        # Fill in emoji icons per-option using this guild's live emojis (avoids
-        # hardcoding IDs — same lookup used for the embed builders below).
-        for opt in self.options:
-            emoji = _info_emoji(interaction.guild, opt.value)
-            if emoji:
-                opt.emoji = emoji
-
         builder = INFO_MENU_BUILDERS.get(self.values[0])
         embed = builder(interaction.guild)
 
@@ -3963,9 +3968,9 @@ class InfoDropdown(discord.ui.Select):
 
 
 class InfoDropdownView(discord.ui.View):
-    def __init__(self):
+    def __init__(self, guild: discord.Guild = None):
         super().__init__(timeout=None)
-        self.add_item(InfoDropdown())
+        self.add_item(InfoDropdown(guild=guild))
 
 
 @tree.command(name="post-info-menu", description="[Admin only] Post the Lords-style dropdown Server Info menu")
@@ -3990,7 +3995,7 @@ async def post_info_menu_command(interaction: discord.Interaction, channel: disc
         embed.set_image(url=interaction.guild.icon.url)
     embed.set_footer(text="Primal Hell • ARK Survival Ascended")
 
-    await channel.send(embed=embed, view=InfoDropdownView())
+    await channel.send(embed=embed, view=InfoDropdownView(guild=interaction.guild))
     await interaction.response.send_message(f"✅ Info menu posted in {channel.mention}.", ephemeral=True)
 
 
