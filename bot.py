@@ -2513,7 +2513,8 @@ async def admin_commands_command(interaction: discord.Interaction):
             "`/post-server-rules` — Post the Server Rules embed\n"
             "`/post-server-info` — Post the Server Info embed (how to join, mods, settings, etc.)\n"
             "`/post-hall-of-fame` — Post the Deathknight Slayer Hall of Fame ranking\n"
-            "`/post-rank-system` — Post the Rank System info embed in #rank-system"
+            "`/post-rank-system` — Post the Rank System info embed in #rank-system\n"
+            "`/post-info-menu` — Post the Lords-style dropdown Server Info menu"
         ),
         inline=False,
     )
@@ -3694,10 +3695,310 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
         )
 
 
+# ── /post-info-menu — Lords-style dropdown Server Info menu ────────────────────
+# Individually visible (ephemeral) per user, exactly like /create-promo's
+# ephemeral replies — nothing new invented, same pattern reused. Each ephemeral
+# reply auto-deletes itself after INFO_MENU_AUTO_DELETE_SECONDS.
+INFO_MENU_AUTO_DELETE_SECONDS = 300  # 5 minutes
+
+# Emoji names — upload these exact names as server emojis (Settings → Emoji).
+# Already uploaded: MagnifyingGlass, Primal_Coin, Red_Beacon, ovis
+# Still needed: Egg (Breeding), PC (Commands) — upload with these names, or
+# tell me the names you used and I'll adjust the two lines below.
+INFO_MENU_EMOJI_NAMES = {
+    "settings": "MagnifyingGlass",
+    "currency": "Primal_Coin",
+    "drops":    "Red_Beacon",
+    "breeding": "Egg",
+    "meta":     "ovis",
+    "commands": "PC",
+}
+
+
+def _info_emoji(guild: discord.Guild, key: str):
+    """Looks up a custom server emoji by name at runtime — no hardcoded IDs
+    needed, so re-uploading/renaming emojis never breaks this."""
+    name = INFO_MENU_EMOJI_NAMES.get(key)
+    if not name or not guild:
+        return None
+    return discord.utils.get(guild.emojis, name=name)
+
+
+def build_info_settings_embed(guild: discord.Guild) -> discord.Embed:
+    embed = discord.Embed(
+        title="🔍 Server Settings — Multipliers & World Settings",
+        description="Every rate and multiplier currently active on Primal Hell.",
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.add_field(
+        name="⚙️ Player Stats (per Level-Up)",
+        value=(
+            "Health ×2.0\nStamina ×2.0\nOxygen ×1.0\nFood ×1.0\nWater ×1.0\n"
+            "Weight ×10.0\nMelee Damage ×2.0\nMovement Speed ×2.0\n"
+            "Temperature Fortitude ×5.0\nCrafting Speed ×50.0"
+        ),
+        inline=True,
+    )
+    embed.add_field(
+        name="⚙️ Tamed Dino Stats (per Level-Up)",
+        value=(
+            "Health ×1.0\nStamina ×2.0\nOxygen ×1.0\nFood ×1.0\nWater ×1.0\n"
+            "Weight ×10.0\nMelee Damage ×1.0\nMovement Speed ×1.0\n"
+            "Temperature Fortitude ×1.0\nCrafting Speed ×1.0"
+        ),
+        inline=True,
+    )
+    embed.add_field(
+        name="🥚 Breeding",
+        value=(
+            "Mating Interval ×0.1\nEgg Hatching ×50\nBaby Maturing ×50\n"
+            "Imprint Amount ×10\nEgg Lay Interval ×0.25"
+        ),
+        inline=True,
+    )
+    embed.add_field(
+        name="✨ XP Multipliers",
+        value="Generic ×3\nCrafting ×3\nCave Kill ×3\nBoss Kill ×3\nAlpha Kill ×3\nWild Kill ×3\nKill ×3\nHarvest ×3",
+        inline=True,
+    )
+    embed.add_field(
+        name="🌍 World & Gameplay",
+        value=(
+            "Harvest Amount ×5\nCrafting Skill Bonus ×5\nTurret Damage ×2.5\n"
+            "Engram Points ×2.0\nFall Damage ×0.25\nFlyer Speed Leveling — Disabled\n"
+            "Corpse Locator — Active\nLast Death Mark — Active\nDamage Numbers — Disabled"
+        ),
+        inline=True,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    return embed
+
+
+def build_info_currency_embed(guild: discord.Guild) -> discord.Embed:
+    embed = discord.Embed(
+        title="🪙 Primal Coins — Server Currency",
+        description=(
+            f"Primal Coins are Primal Hell's own currency, spent in the [Shop]({SHOP_PUBLIC_URL}) "
+            "on Mystery Chests, guaranteed item packs, boss rewards, and more."
+        ),
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.add_field(
+        name="🆓 Earn Coins for free",
+        value=(
+            "• Being active in Discord — our rank system (`/rank`, see `#｜rank-system`)\n"
+            "• Spinning the daily Lucky Wheel on the Shop's Home tab\n"
+            "• Inviting friends — referral bonus per new, unique member\n"
+            "• VIP boosters also get a monthly Coin drop + their own VIP Lucky Wheel"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="💰 Spend Coins",
+        value=(
+            f"Head to the [Primal Hell Shop]({SHOP_PUBLIC_URL}) to open Mystery Chests, buy guaranteed "
+            "item packs, or grab Combo Packs. Use `/balance` anytime to check your current total, "
+            "and `/whoami` to get your Discord ID for signing up."
+        ),
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    return embed
+
+
+def build_info_drops_embed(guild: discord.Guild) -> discord.Embed:
+    embed = discord.Embed(
+        title="🔴 Drops — Custom Supply Crates",
+        description=(
+            "⚪ White → Starter Kit\n"
+            "🟢 Green → Resources & Taming\n"
+            "🔵 Blue → Alpha/Volcanic/Mythic Gear\n"
+            "🟣 Purple → Resources\n"
+            "🟡 Yellow → Saddles\n"
+            "🔴 Red → Endgame Exclusives\n"
+            "🌊 Deep-Sea → Ragnarok Only\n\n"
+            f"For the full, detailed contents of every drop, use **/drops** or **/drop <color>** in {COMMANDS_CHANNEL}."
+        ),
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    return embed
+
+
+def build_info_breeding_embed(guild: discord.Guild) -> discord.Embed:
+    embed = discord.Embed(
+        title="🥚 Breeding — Rates & Raising",
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.add_field(
+        name="📈 Breeding Multipliers",
+        value=(
+            "Mating Interval ×0.1\nEgg Hatching ×50\nBaby Maturing ×50\n"
+            "Imprint Amount ×10\nEgg Lay Interval ×0.25"
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="📦 Raising with Dino Depot",
+        value=(
+            "Use the **Dino Depot** mod to store fresh babies and raise them safely — fully "
+            "crossplay-enabled, not just a cryopod clone. Pull babies out to imprint on schedule "
+            "and get them to **100% imprint** without needing to babysit the whole maturation time."
+        ),
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    return embed
+
+
+def build_info_meta_embed(guild: discord.Guild) -> discord.Embed:
+    embed = discord.Embed(
+        title="👑 Current Meta — Primal Hell Cluster",
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.add_field(
+        name="🐑 Demonic Ovis",
+        value="Stacks you with Demonic Hide and Demonic Blood, which makes farming Demonic Ingots and every Demonic Blueprint easy.",
+        inline=False,
+    )
+    embed.add_field(
+        name="🪚 Chainsaw",
+        value="Gains you more Hide and Blood per swing than manual harvesting.",
+        inline=False,
+    )
+    embed.add_field(
+        name="🩸 Bio Grinder",
+        value="Grinds your own dinos to farm Hide and Blood easier than ever before.",
+        inline=False,
+    )
+    embed.add_field(
+        name="🐜 Mythic Anky",
+        value="The best all-around farmer in the game — including berries as well.",
+        inline=False,
+    )
+    embed.add_field(
+        name="✨ Element",
+        value="Easily farmed via boss fights — the **Tribute Table** means bosses (and their Element) are just a craft & summon away, no artifact hunting.",
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    return embed
+
+
+def build_info_commands_embed(guild: discord.Guild) -> discord.Embed:
+    embed = discord.Embed(
+        title="💻 Commands — Everything Members Can Use",
+        description=f"Use **/commands** anytime in {COMMANDS_CHANNEL} for the always-up-to-date full list.",
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.add_field(
+        name="📋 Quick Overview",
+        value=(
+            "`/drop <color>` / `/drops` — Loot drop contents\n"
+            "`/taming-guide` — Ammo tiers & torpor explained\n"
+            "`/armor-guide` — Armor tiers & perks\n"
+            "`/kibble-guide` — Egg → Kibble progression\n"
+            "`/boss-fight` — Boss loot & Element rewards\n"
+            "`/mods` — All active mods\n"
+            "`/serverstatus` — Live player count & map\n"
+            "`/rank` — Your Discord activity rank card\n"
+            "`/balance` — Your Primal Coins balance\n"
+            "`/whoami` — Your Discord ID (for Shop sign-up)\n"
+            "`/suggestion <text>` — Submit a suggestion"
+        ),
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+    return embed
+
+
+INFO_MENU_BUILDERS = {
+    "settings": build_info_settings_embed,
+    "currency": build_info_currency_embed,
+    "drops":    build_info_drops_embed,
+    "breeding": build_info_breeding_embed,
+    "meta":     build_info_meta_embed,
+    "commands": build_info_commands_embed,
+}
+
+
+class InfoDropdown(discord.ui.Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(label="Server Settings", value="settings", description="All multipliers and world settings", emoji=None),
+            discord.SelectOption(label="Server Currency",  value="currency", description="Primal Coins — how to earn & spend them", emoji=None),
+            discord.SelectOption(label="Drops",            value="drops",    description="Supply crate overview", emoji=None),
+            discord.SelectOption(label="Breeding",         value="breeding", description="Breeding rates & Dino Depot", emoji=None),
+            discord.SelectOption(label="Meta",             value="meta",     description="Current best farming meta", emoji=None),
+            discord.SelectOption(label="Commands",         value="commands", description="Everything the bot can do", emoji=None),
+        ]
+        super().__init__(
+            placeholder="Click here to see settings",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="info_dropdown_select",
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        # Fill in emoji icons per-option using this guild's live emojis (avoids
+        # hardcoding IDs — same lookup used for the embed builders below).
+        for opt in self.options:
+            emoji = _info_emoji(interaction.guild, opt.value)
+            if emoji:
+                opt.emoji = emoji
+
+        builder = INFO_MENU_BUILDERS.get(self.values[0])
+        embed = builder(interaction.guild)
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+        async def _auto_delete():
+            await asyncio.sleep(INFO_MENU_AUTO_DELETE_SECONDS)
+            try:
+                await interaction.delete_original_response()
+            except discord.HTTPException:
+                pass
+        asyncio.create_task(_auto_delete())
+
+
+class InfoDropdownView(discord.ui.View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(InfoDropdown())
+
+
+@tree.command(name="post-info-menu", description="[Admin only] Post the Lords-style dropdown Server Info menu")
+@app_commands.describe(channel="Which channel should the menu be posted in?")
+async def post_info_menu_command(interaction: discord.Interaction, channel: discord.TextChannel):
+    user_role_names = {role.name for role in interaction.user.roles}
+    if not user_role_names.intersection(SHOP_EMBED_ROLES):
+        roles_text = " / ".join(SHOP_EMBED_ROLES)
+        await interaction.response.send_message(f"❌ Only **{roles_text}** can post the info menu.", ephemeral=True)
+        return
+
+    server_logo_emoji = discord.utils.get(interaction.guild.emojis, name="server_logo")
+
+    embed = discord.Embed(
+        title="SERVER INFORMATION",
+        description="Click on the dropdown below for Primal Hell server information",
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    if server_logo_emoji:
+        embed.set_image(url=server_logo_emoji.url)
+    elif interaction.guild.icon:
+        embed.set_image(url=interaction.guild.icon.url)
+    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+
+    await channel.send(embed=embed, view=InfoDropdownView())
+    await interaction.response.send_message(f"✅ Info menu posted in {channel.mention}.", ephemeral=True)
+
+
 # ── Start ──────────────────────────────────────────────────────────────────────
 @client.event
 async def on_ready():
     client.add_view(GiveawayView())
+    client.add_view(InfoDropdownView())
     if SYNC_GUILD:
         # Every @tree.command() above registers globally by default. Guild-scoped
         # sync only pushes commands that exist in the tree's *guild* scope — so
