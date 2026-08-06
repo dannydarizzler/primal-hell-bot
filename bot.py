@@ -3713,6 +3713,15 @@ INFO_MENU_EMOJI_NAMES = {
 }
 
 
+def _guild_emoji_str(guild: discord.Guild, name: str, fallback: str) -> str:
+    """Looks up any custom server emoji directly by name (not tied to a menu
+    category) — used for the per-color drop icons."""
+    if not guild:
+        return fallback
+    emoji = discord.utils.get(guild.emojis, name=name)
+    return str(emoji) if emoji else fallback
+
+
 def _info_emoji(guild: discord.Guild, key: str):
     """Looks up a custom server emoji by name at runtime — no hardcoded IDs
     needed, so re-uploading/renaming emojis never breaks this."""
@@ -3814,15 +3823,20 @@ def build_info_currency_embed(guild: discord.Guild) -> discord.Embed:
 
 def build_info_drops_embed(guild: discord.Guild) -> discord.Embed:
     beacon = _info_emoji_str(guild, "drops", "🔴")
+    white  = _guild_emoji_str(guild, "White_Beacon", "⚪")
+    green  = _guild_emoji_str(guild, "Green_Beacon", "🟢")
+    blue   = _guild_emoji_str(guild, "Blue_Beacon", "🔵")
+    yellow = _guild_emoji_str(guild, "Yellow_Beacon", "🟡")
+    red    = _guild_emoji_str(guild, "Red_Crate", "🔴")
     embed = discord.Embed(
         title=f"{beacon} Drops — Custom Supply Crates",
         description=(
-            "⚪ White → Starter Kit\n"
-            "🟢 Green → Resources & Taming\n"
-            "🔵 Blue → Alpha/Volcanic/Mythic Gear\n"
+            f"{white} White → Starter Kit\n"
+            f"{green} Green → Resources & Taming\n"
+            f"{blue} Blue → Alpha/Volcanic/Mythic Gear\n"
             "🟣 Purple → Resources\n"
-            "🟡 Yellow → Saddles\n"
-            f"{beacon} Red → Endgame Exclusives\n"
+            f"{yellow} Yellow → Saddles\n"
+            f"{red} Red → Endgame Exclusives\n"
             "🌊 Deep-Sea → Ragnarok Only\n\n"
             f"For the full, detailed contents of every drop, use **/drops** or **/drop <color>** in {COMMANDS_CHANNEL}."
         ),
@@ -3920,12 +3934,77 @@ def build_info_commands_embed(guild: discord.Guild) -> discord.Embed:
     return embed
 
 
+def build_info_mods_embed(guild: discord.Guild) -> discord.Embed:
+    embed = discord.Embed(
+        title="🔧 Active Mods — Primal Hell",
+        description="What each mod on the server actually does, summarized from their official listings.",
+        color=discord.Color.from_rgb(255, 90, 31),
+    )
+    embed.add_field(
+        name="⚔️ Gameplay Overhaul",
+        value=(
+            "**ARK Primal Chaos** — the full overhaul the server is built around. Adds tiered "
+            "progression across taming, structures, weapons and armor, plus a lineup of "
+            "endgame bosses."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🦕 Dino Tools",
+        value=(
+            "**Awesome Spyglass** — an upgraded spyglass showing detailed live info on dinos, "
+            "players, structures, eggs and supply crates.\n"
+            "**Dino Depot** — crossplay dino storage using \"Dinoballs\" instead of cryopods, "
+            "with item transfer on capture and no missed babies.\n"
+            "**Der Dino Finder** — a minimap button that lists and locates dinos, filterable "
+            "by species, gender, age and level."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="⚙️ Quality of Life",
+        value=(
+            "**TG Stacking Mod 1000-50** — raises stack sizes to 1,000 and cuts weight by 50%.\n"
+            "**A Simple Performance Mod (60 FPS)** — auto-applies console-friendly graphics "
+            "commands on join, aiming for 40–60 FPS without gutting visuals.\n"
+            "**Crash Protector** — wild creatures ignore disconnected players, so you won't be "
+            "eaten or drowned while offline.\n"
+            "**Better Breeding** — guarantees offspring inherit the best wild levels and "
+            "mutations from their parents.\n"
+            "**Auto Engrams** — unlocks engrams automatically as you hit the required level "
+            "(Tek stays separate, so it's still earned)."
+        ),
+        inline=False,
+    )
+    embed.add_field(
+        name="🛠️ Building & Utility",
+        value=(
+            "**Upgrade Station** — upgrades weapon/armor/saddle quality from Primitive to "
+            "Ascendant, or salvages items for resources; works on modded items too.\n"
+            "**Pull It!** — pulls needed crafting/repair resources straight from nearby "
+            "storage, no manual searching.\n"
+            "**Greenhouse Glass Fix** — raises greenhouse glass opacity so it actually looks "
+            "like glass.\n"
+            "**Tribute Table** — craft boss tribute items from regular materials at one table, "
+            "no artifact or tribute farming needed.\n"
+            "**AP: Death Recovery** — a craftable structure that lets you recover your items "
+            "after death.\n"
+            "**Alfa Oceanic Platforms** — several ocean platform and foundation types for "
+            "building on open water."
+        ),
+        inline=False,
+    )
+    embed.set_footer(text="Primal Hell • Use /mods in-game for the full breakdown of each mod")
+    return embed
+
+
 INFO_MENU_BUILDERS = {
     "settings": build_info_settings_embed,
     "currency": build_info_currency_embed,
     "drops":    build_info_drops_embed,
     "breeding": build_info_breeding_embed,
     "meta":     build_info_meta_embed,
+    "mods":     build_info_mods_embed,
     "commands": build_info_commands_embed,
 }
 
@@ -3942,6 +4021,7 @@ class InfoDropdown(discord.ui.Select):
             discord.SelectOption(label="Drops",            value="drops",    description="Supply crate overview", emoji=_info_emoji(guild, "drops")),
             discord.SelectOption(label="Breeding",         value="breeding", description="Breeding rates & Dino Depot", emoji=_info_emoji(guild, "breeding")),
             discord.SelectOption(label="Meta",             value="meta",     description="Current best farming meta", emoji=_info_emoji(guild, "meta")),
+            discord.SelectOption(label="Mods",             value="mods",     description="Every active mod, summarized", emoji="🔧"),
             discord.SelectOption(label="Commands",         value="commands", description="Everything the bot can do", emoji="💻"),
         ]
         super().__init__(
