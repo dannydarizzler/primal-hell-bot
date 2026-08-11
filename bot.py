@@ -260,10 +260,7 @@ async def commands_command(interaction: discord.Interaction):
     )
     embed.add_field(
         name="📊 Server Info",
-        value=(
-            "`/mods` — List of all active mods with descriptions\n"
-            "`/serverstatus` — Live player count & map"
-        ),
+        value="`/serverstatus` — Live player count & map",
         inline=False,
     )
     embed.add_field(
@@ -466,72 +463,6 @@ async def suggestion_command(interaction: discord.Interaction, text: str):
         f"✅ Your suggestion has been submitted to {suggestions_ch.mention}!",
         ephemeral=True,
     )
-
-
-# ── /mods ──────────────────────────────────────────────────────────────────────
-@tree.command(name="mods", description="Shows all active mods on the server")
-async def mods_command(interaction: discord.Interaction):
-    embed = discord.Embed(
-        title="🔧 Active Mods — Primal Hell",
-        description="These mods are currently running on the server:",
-    )
-    embed.add_field(
-        name="⚔️ Gameplay Overhaul",
-        value=(
-            "**ARK Primal Chaos** — Full overhaul mod: new dino tiers, weapons, armor & bosses"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="🦕 Dino Tools",
-        value=(
-            "**Awesome Spyglass** — Extended spyglass with live stat display for dinos\n"
-            "**Dino Depot** — Dino & creature storage, fully crossplay-enabled (not just a cryopod clone — 200+ config options)\n"
-            "**Der Dino Finder** — Adds a minimap button to locate any dino on the map"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="⚙️ Quality of Life",
-        value=(
-            "**TG Stacking Mod 1000-50** — Stack size ×1000, weight reduced by 50%\n"
-            "**A Simple Performance Mod (60 FPS)** — Automatically runs performance commands on join "
-            "(see below for full list)\n"
-            "**Crash Protector** — Protects logged-out players from wild animals and drowning\n"
-            "**Better Breeding** — Guarantees offspring inherit the best wild levels and mutations from their parents\n"
-            "**Auto Engrams** — Automatically unlocks engrams as you reach the required level\n"
-            "**Upgrade Station** — Upgrade items to higher quality tiers (ARK base items only)\n"
-            "**Pull It!** — Pull nearby resources straight into your crafting or repair queue\n"
-            "**Greenhouse Glass Fix** — Fixes greenhouse glass opacity so it actually looks like glass\n"
-            "**Tribute Table** — Craft and summon all boss fights directly — no artifact or tribute farming required\n"
-            "**AP: Death Recovery** — Cross-platform mod that adds a structure to recover your items after death\n"
-            "**Alfa Oceanic Platforms** — Ocean platforms of different types to build on"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="🖥️ Performance Mod — Applied Commands (PC)",
-        value=(
-            "`r.VolumetricCloud 0` — Disables clouds\n"
-            "`r.Nanite.MaxPixelsPerEdge 4` — Reduces triangle count\n"
-            "`foliage.MaxTrianglesToRender 500000` — Limits foliage rendering"
-        ),
-        inline=False,
-    )
-    embed.add_field(
-        name="🎮 Performance Mod — Additional Commands (Console only)",
-        value=(
-            "`sg.GlobalIlluminationQuality 2` · `sg.ResolutionQuality 80`\n"
-            "`sg.AntiAliasingQuality 1` · `sg.ShadowQuality 2` · `sg.ShadingQuality 1`\n"
-            "`sg.PostProcessQuality 1` · `sg.FoliageQuality 1` · `sg.EffectsQuality 1`\n"
-            "`sg.ReflectionQuality 1` · `sg.TextureQuality 2` · `r.Vsync 1`\n"
-            "`r.ScreenPercentage 50` · `r.DynamicRes.MinScreenPercentage 50`\n"
-            "`r.Lumen.ScreenProbeGather.RadianceCache.ProbeResolution 16`"
-        ),
-        inline=False,
-    )
-    embed.set_footer(text="Primal Hell • ARK Survival Ascended")
-    await interaction.response.send_message(embed=embed)
 
 
 # ── /armor-guide ───────────────────────────────────────────────────────────────
@@ -3586,20 +3517,12 @@ def build_info_settings_embed(guild: discord.Guild) -> discord.Embed:
         inline=True,
     )
     embed.add_field(
-        name="🥚 Breeding",
-        value=(
-            "Mating Interval ×0.1\nEgg Hatching ×50\nBaby Maturing ×50\n"
-            "Imprint Amount ×10\nEgg Lay Interval ×0.25"
-        ),
-        inline=True,
-    )
-    embed.add_field(
         name="✨ XP Multipliers",
         value="Generic ×3\nCrafting ×3\nCave Kill ×3\nBoss Kill ×3\nAlpha Kill ×3\nWild Kill ×3\nKill ×3\nHarvest ×3",
         inline=True,
     )
     embed.add_field(
-        name="🌍 World & Gameplay",
+        name=f"{_guild_emoji_str(guild, 'ASA_logo', '🌍')} World & Gameplay",
         value=(
             "Harvest Amount ×5\nCrafting Skill Bonus ×5\nTurret Damage ×2.5\n"
             "Engram Points ×2.0\nFall Damage ×0.25\nFlyer Speed Leveling — Disabled\n"
@@ -3645,22 +3568,24 @@ def build_info_currency_embed(guild: discord.Guild) -> discord.Embed:
 
 
 def build_info_drops_embed(guild: discord.Guild) -> discord.Embed:
-    beacon = _info_emoji_str(guild, "drops", "🔴")
-    white  = _guild_emoji_str(guild, "White_Beacon", "⚪")
-    green  = _guild_emoji_str(guild, "Green_Beacon", "🟢")
-    blue   = _guild_emoji_str(guild, "Blue_Beacon", "🔵")
-    yellow = _guild_emoji_str(guild, "Yellow_Beacon", "🟡")
-    red    = _guild_emoji_str(guild, "Red_Crate", "🔴")
+    beacon  = _info_emoji_str(guild, "drops", "🔴")
+    white   = _guild_emoji_str(guild, "White_Beacon", "⚪")
+    green   = _guild_emoji_str(guild, "Green_Beacon", "🟢")
+    blue    = _guild_emoji_str(guild, "Blue_Beacon", "🔵")
+    purple  = _guild_emoji_str(guild, "Purple_beacon", "🟣")
+    yellow  = _guild_emoji_str(guild, "Yellow_Beacon", "🟡")
+    red     = _guild_emoji_str(guild, "Red_Crate", "🔴")
+    element = _guild_emoji_str(guild, "Element", "💠")
     embed = discord.Embed(
         title=f"{beacon} Drops — Custom Supply Crates",
         description=(
             f"{white} White → Starter Kit\n"
             f"{green} Green → Resources & Taming\n"
             f"{blue} Blue → Alpha/Volcanic/Mythic Gear\n"
-            "🟣 Purple → Resources\n"
+            f"{purple} Purple → Resources\n"
             f"{yellow} Yellow → Saddles\n"
             f"{red} Red → Endgame Exclusives\n"
-            "🌊 Deep-Sea → Ragnarok Only\n\n"
+            f"{element} Element → Boss Rewards\n\n"
             f"For the full, detailed contents of every drop, use **/drops** or **/drop <color>** in {COMMANDS_CHANNEL}."
         ),
         color=discord.Color.from_rgb(255, 90, 31),
@@ -3717,7 +3642,7 @@ def build_info_meta_embed(guild: discord.Guild) -> discord.Embed:
         inline=False,
     )
     embed.add_field(
-        name="🐜 Mythic Anky",
+        name=f"{_guild_emoji_str(guild, 'Ankylosaurus', '🐜')} Mythic Anky",
         value="The best all-around farmer in the game — including berries as well.",
         inline=False,
     )
@@ -3744,7 +3669,6 @@ def build_info_commands_embed(guild: discord.Guild) -> discord.Embed:
             "`/armor-guide` — Armor tiers & perks\n"
             "`/kibble-guide` — Egg → Kibble progression\n"
             "`/boss-fight` — Boss loot & Element rewards\n"
-            "`/mods` — All active mods\n"
             "`/serverstatus` — Live player count & map\n"
             "`/rank` — Your Discord activity rank card\n"
             "`/balance` — Your Primal Coins balance\n"
@@ -3804,8 +3728,8 @@ def build_info_mods_embed(guild: discord.Guild) -> discord.Embed:
         value=(
             "**Upgrade Station** — upgrades weapon/armor/saddle quality from Primitive to "
             "Ascendant, or salvages items for resources; works on modded items too.\n"
-            "**Pull It!** — pulls needed crafting/repair resources straight from nearby "
-            "storage, no manual searching.\n"
+            "**Cybers Structures QOL+** — adds a range of quality-of-life building pieces "
+            "and structures on top of the base game's set.\n"
             "**Greenhouse Glass Fix** — raises greenhouse glass opacity so it actually looks "
             "like glass.\n"
             "**Tribute Table** — craft boss tribute items from regular materials at one table, "
