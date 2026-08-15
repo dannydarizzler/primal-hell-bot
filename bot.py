@@ -77,6 +77,13 @@ ARK_MAP_NAME      = os.environ.get("ARK_MAP_NAME", "Ragnarok")
 ARK_MAX_PLAYERS   = os.environ.get("ARK_MAX_PLAYERS", "20")
 ARK_SERVER_NAME   = os.environ.get("ARK_SERVER_NAME", "#Primal-hell-5x-Chaos-Modded")
 
+ASTRAEOS_HOST          = os.environ.get("ASTRAEOS_HOST", "31.214.216.157")
+ASTRAEOS_RCON_PORT     = int(os.environ.get("ASTRAEOS_RCON_PORT", "11180"))
+ASTRAEOS_RCON_PASSWORD = os.environ.get("ASTRAEOS_RCON_PASSWORD", "goat")
+ASTRAEOS_MAP_NAME      = os.environ.get("ASTRAEOS_MAP_NAME", "Astraeos")
+ASTRAEOS_MAX_PLAYERS   = os.environ.get("ASTRAEOS_MAX_PLAYERS", "26")
+ASTRAEOS_SERVER_NAME   = os.environ.get("ASTRAEOS_SERVER_NAME", "#Primal-Hell-5x-Nemesis-Modded")
+
 # ── Loot Drop Data ─────────────────────────────────────────────────────────────
 DROPS = {
     "white": {
@@ -1274,8 +1281,8 @@ def parse_player_list(raw: str) -> list[dict]:
     return players
 
 
-@tree.command(name="serverstatus", description="Zeigt Spieleranzahl, Map und Status des ARK Servers")
-async def serverstatus_command(interaction: discord.Interaction):
+@tree.command(name="serverstatus-ragnarok", description="Zeigt Spieleranzahl, Map und Status des Ragnarok ARK Servers")
+async def serverstatus_ragnarok_command(interaction: discord.Interaction):
     if not await check_channel(interaction):
         return
 
@@ -1300,6 +1307,50 @@ async def serverstatus_command(interaction: discord.Interaction):
         embed.add_field(name="Status", value="🟢 Online", inline=True)
         embed.add_field(name="Map", value=ARK_MAP_NAME, inline=True)
         embed.add_field(name="Spieler", value=f"{len(players)} / {ARK_MAX_PLAYERS}", inline=True)
+
+        if players:
+            names = "\n".join(f"• {p['name']}" for p in players)[:1000]
+            embed.add_field(name="Online", value=names, inline=False)
+
+        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+        await interaction.followup.send(embed=embed)
+
+    except Exception as e:
+        embed = discord.Embed(
+            title="🦖 Server nicht erreichbar",
+            description=f"🔴 RCON-Verbindung fehlgeschlagen: `{e}`",
+            color=discord.Color.red(),
+        )
+        embed.set_footer(text="Primal Hell • ARK Survival Ascended")
+        await interaction.followup.send(embed=embed)
+
+
+@tree.command(name="serverstatus-astraeos", description="Zeigt Spieleranzahl, Map und Status des Astraeos ARK Servers")
+async def serverstatus_astraeos_command(interaction: discord.Interaction):
+    if not await check_channel(interaction):
+        return
+
+    await interaction.response.defer()
+
+    if not ASTRAEOS_HOST or not ASTRAEOS_RCON_PASSWORD:
+        await interaction.followup.send(
+            "❌ RCON ist nicht konfiguriert (ASTRAEOS_HOST / ASTRAEOS_RCON_PASSWORD Umgebungsvariablen fehlen).",
+            ephemeral=True,
+        )
+        return
+
+    try:
+        rcon = SourceRcon(ASTRAEOS_HOST, ASTRAEOS_RCON_PORT, ASTRAEOS_RCON_PASSWORD)
+        raw = await rcon.command("ListPlayers")
+        players = parse_player_list(raw)
+
+        embed = discord.Embed(
+            title=f"🦖 {ASTRAEOS_SERVER_NAME}",
+            color=discord.Color.green(),
+        )
+        embed.add_field(name="Status", value="🟢 Online", inline=True)
+        embed.add_field(name="Map", value=ASTRAEOS_MAP_NAME, inline=True)
+        embed.add_field(name="Spieler", value=f"{len(players)} / {ASTRAEOS_MAX_PLAYERS}", inline=True)
 
         if players:
             names = "\n".join(f"• {p['name']}" for p in players)[:1000]
